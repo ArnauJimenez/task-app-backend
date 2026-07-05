@@ -1,0 +1,17 @@
+# Dependencias (Los 220MB de basura)
+node_modules/
+
+# Variables de entorno con contraseñas secretas (¡MUY IMPORTANTE!)
+.env
+
+# Archivos generados por Prisma
+/prisma/dev.db
+/prisma/dev.db-journal
+
+# Carpetas de compilación (si usas dist o build en el futuro)
+dist/
+build/
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
