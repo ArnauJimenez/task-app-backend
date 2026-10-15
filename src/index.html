@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mis Tareas</title>
+</head>
+<body>
+    <h1>Mi Gestor de Tareas</h1>
+    
+    <div id="lista-tareas"></div>
+
+    <script>
+        // 1. Simulamos que tenemos el token guardado en el navegador
+        // Pega aquí el token real que usas en Thunder Client para la prueba
+        const MI_TOKEN = "PEGA_AQUÍ_TU_TOKEN_JWT"; 
+
+        // 2. Función para pintar la tarea con su botón Borrar dinámico
+        function renderizarTarea(id, titulo) {
+            const contenedor = document.getElementById("lista-tareas");
+            
+            // Añadimos el HTML metiendo el ID real dentro de la función del botón
+            contenedor.innerHTML += `
+                <div id="tarea-${id}" style="margin-bottom: 10px;">
+                    <span><strong>${titulo}</strong></span>
+                    <button onclick="eliminarTareaFromServer('${id}')">🗑️ Borrar</button>
+                </div>
+            `;
+        }
+
+        // 3. La función que se ejecuta al hacer clic en el botón
+        async function eliminarTareaFromServer(idDeLaTarea) {
+            console.log("Enviando petición DELETE para la tarea:", idDeLaTarea);
+
+            try {
+                const response = await fetch(`http://localhost:3000/tasks/${idDeLaTarea}`, {
+                    method: "DELETE",
+                    headers: {
+                        "Authorization": `Bearer ${MI_TOKEN}`
+                    }
+                });
+
+                if (response.ok) {
+                    // Si el backend dice OK, borramos la tarea de la pantalla
+                    document.getElementById(`tarea-${idDeLaTarea}`).remove();
+                    alert("¡Tarea eliminada correctamente!");
+                } else {
+                    alert("Error al eliminar la tarea del servidor");
+                }
+            } catch (error) {
+                console.error("Error en la petición:", error);
+            }
+        }
+
+        // 🧪 PRUEBA MANUAL: Pintamos la tarea que acabas de borrar o una nueva
+        // Cambia este ID por uno que exista en tu base de datos actual
+        renderizarTarea("cmpwlegym00019d1i6ode2a2p", "Mi primera tarea de prueba");
+    </script>
+</body>
+</html>
