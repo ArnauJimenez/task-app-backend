@@ -1,7 +1,7 @@
-# === ETAPA 1: Compilación ===
 FROM node:20-slim
 WORKDIR /app
 RUN apt-get update -y && apt-get install -y openssl
+ENV NODE_ENV=development
 COPY package*.json ./
 RUN npm install
 COPY prisma ./prisma
