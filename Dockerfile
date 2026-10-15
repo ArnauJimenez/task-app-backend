@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-COPY schema.prisma ./
+COPY prisma ./prisma
 ENV DATABASE_URL="postgresql://mockuser:mockpassword@localhost:5432/mockdb"
 RUN npx prisma generate --schema=./schema.prisma
 
