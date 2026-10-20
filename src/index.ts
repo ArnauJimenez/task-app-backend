@@ -7,9 +7,22 @@ import taskRoutes from "./routes/task.routes";
 
 const app = express();
 
-// 1. ⚠️ CORS DEBE IR PRIMERO QUE NADA (Permite que React se comunique)
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  // Aquí puedes añadir la URL de tu frontend en Vercel cuando la sepas, por ejemplo:
+  // "https://tu-frontend.vercel.app"
+];
+
 app.use(cors({
-  origin: "http://localhost:5173", // O pon true para permitir cualquier origen en desarrollo
+  origin: (origin, callback) => {
+    // Permitir solicitudes sin origen (como Postman o apps móviles) o si está en la lista
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== "production") {
+      callback(null, true);
+    } else {
+      callback(new Error("No permitido por CORS"));
+    }
+  },
   credentials: true
 }));
 
