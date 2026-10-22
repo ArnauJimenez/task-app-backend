@@ -6,16 +6,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.me = exports.login = exports.register = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const client_1 = require("../prisma/client");
+const client_1 = require("@prisma/client");
+// Instanciamos Prisma directamente aquí (cero líos de rutas relativas)
+const prisma = new client_1.PrismaClient();
 const auth_validator_1 = require("../validators/auth.validator");
 // =========================
 // REGISTER
 // =========================
 const register = async (req, res) => {
     try {
-        // Validamos pasando el objeto con la propiedad body tal como pide el esquema
         const validatedData = auth_validator_1.registerSchema.parse({ body: req.body });
-        const existingUser = await client_1.prisma.user.findUnique({
+        const existingUser = await prisma.user.findUnique({
             where: { email: validatedData.body.email },
         });
         if (existingUser) {
@@ -24,7 +25,7 @@ const register = async (req, res) => {
             });
         }
         const hashedPassword = await bcrypt_1.default.hash(validatedData.body.password, 10);
-        const user = await client_1.prisma.user.create({
+        const user = await prisma.user.create({
             data: {
                 email: validatedData.body.email,
                 password: hashedPassword,
@@ -36,6 +37,7 @@ const register = async (req, res) => {
         });
     }
     catch (error) {
+        console.error("❌ ERROR en register:", error);
         return res.status(500).json({
             message: "Register failed",
         });
@@ -47,9 +49,8 @@ exports.register = register;
 // =========================
 const login = async (req, res) => {
     try {
-        // Validamos pasando el objeto con la propiedad body tal como pide el esquema
         const validatedData = auth_validator_1.loginSchema.parse({ body: req.body });
-        const user = await client_1.prisma.user.findUnique({
+        const user = await prisma.user.findUnique({
             where: { email: validatedData.body.email },
         });
         if (!user) {
@@ -63,14 +64,12 @@ const login = async (req, res) => {
                 message: "Invalid credentials",
             });
         }
-        const token = jsonwebtoken_1.default.sign({
-            userId: user.id,
-        }, process.env.JWT_SECRET || "tu_secret_por_si_acaso", {
-            expiresIn: "7d",
-        });
+        const token = jsonwebtoken_1.default.sign({ userId: user.id, email: user.email }, process.env.JWT_SECRET || "secreto_super_seguro", // 👈 Fíjate en este texto
+        { expiresIn: "1d" });
         return res.json({ token });
     }
     catch (error) {
+        console.error("❌ ERROR en login:", error);
         return res.status(500).json({
             message: "Login failed",
         });
@@ -82,9 +81,8 @@ exports.login = login;
 // =========================
 const me = async (req, res) => {
     try {
-        await new Promise((resolve) => setTimeout(resolve, 400));
         const decodedUser = req.user;
-        const user = await client_1.prisma.user.findUnique({
+        const user = await prisma.user.findUnique({
             where: {
                 id: decodedUser?.userId,
             },
@@ -102,6 +100,7 @@ const me = async (req, res) => {
         return res.json(user);
     }
     catch (error) {
+        console.error("❌ ERROR en me:", error);
         return res.status(500).json({
             message: "Failed to get user",
         });

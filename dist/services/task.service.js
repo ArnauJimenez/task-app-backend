@@ -1,49 +1,42 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.taskService = void 0;
-const client_1 = require("../prisma/client");
+const client_1 = require("@prisma/client");
+const prisma = new client_1.PrismaClient();
 exports.taskService = {
-    createTask: async (title, userId) => {
-        return await client_1.prisma.task.create({
-            data: {
-                title,
-                userId,
-            },
+    createTask: async (title, description, userId) => {
+        return await prisma.task.create({
+            data: { title, description, userId },
+            include: { user: { select: { email: true } } }
+        });
+    },
+    updateTask: async (id, data) => {
+        return await prisma.task.update({
+            where: { id },
+            data,
         });
     },
     getUserTasks: async (userId) => {
-        return await client_1.prisma.task.findMany({
-            where: {
-                userId,
-            },
-            orderBy: {
-                createdAt: "desc",
-            },
+        const where = userId ? { userId } : {};
+        return await prisma.task.findMany({
+            where,
+            orderBy: { createdAt: "desc" },
+            include: { user: { select: { email: true } } }
         });
     },
     getTaskById: async (id, userId) => {
-        return await client_1.prisma.task.findFirst({
-            where: {
-                id: id,
-                userId: userId, // Filtro de seguridad activo
-            },
+        return await prisma.task.findFirst({
+            where: { id, userId },
         });
     },
     getTaskByIdOnly: async (id) => {
-        return await client_1.prisma.task.findUnique({
+        return await prisma.task.findUnique({
             where: { id },
         });
     },
     deleteTask: async (id) => {
-        return await client_1.prisma.task.delete({
+        return await prisma.task.delete({
             where: { id },
-        });
-    },
-    // 🔄 NUEVO MÉTODO DE ACTUALIZACIÓN CON PRISMA
-    updateTask: async (id, data) => {
-        return await client_1.prisma.task.update({
-            where: { id },
-            data, // Prisma es inteligente: si solo le pasas 'completed', solo cambiará eso sin romper el título
         });
     },
 };

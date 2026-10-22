@@ -1,85 +1,34 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const auth_controller_1 = require("../controllers/auth.controller");
-const auth_middleware_1 = require("../middlewares/auth.middleware");
-const validate_middleware_1 = require("../middlewares/validate.middleware");
-const auth_validator_1 = require("../validators/auth.validator");
+const auth_service_1 = require("../services/auth.service");
 const router = (0, express_1.Router)();
-/**
- * @openapi
- * /api/auth/register:
- * post:
- * summary: Registrar un nuevo usuario
- * tags:
- * - Autenticación
- * requestBody:
- * required: true
- * content:
- * application/json:
- * schema:
- * type: object
- * required:
- * - email
- * - password
- * properties:
- * email:
- * type: string
- * example: test@gmail.com
- * password:
- * type: string
- * example: superpassword123
- * responses:
- * 201:
- * description: Usuario creado con éxito
- * 400:
- * description: Error de validación de datos (Zod)
- */
-router.post('/register', (0, validate_middleware_1.validate)(auth_validator_1.registerSchema), auth_controller_1.register);
-/**
- * @openapi
- * /api/auth/login:
- * post:
- * summary: Iniciar sesión de usuario
- * tags:
- * - Autenticación
- * requestBody:
- * required: true
- * content:
- * application/json:
- * schema:
- * type: object
- * required:
- * - email
- * - password
- * properties:
- * email:
- * type: string
- * example: test@gmail.com
- * password:
- * type: string
- * example: superpassword123
- * responses:
- * 200:
- * description: Login correcto, devuelve el token JWT
- * 401:
- * description: Credenciales incorrectas
- */
-router.post('/login', (0, validate_middleware_1.validate)(auth_validator_1.loginSchema), auth_controller_1.login);
-/**
- * @openapi
- * /api/auth/me:
- * get:
- * summary: Obtener el perfil del usuario autenticado
- * tags:
- * - Autenticación
- * security:
- * - bearerAuth: []
- * responses:
- * 200:
- * description: Datos del usuario obtenidos correctamente
- * 401:
- * description: Token inválido o no proporcionado
- */
-router.get('/me', auth_middleware_1.authMiddleware, auth_controller_1.me);
+// POST /api/auth/register
+router.post('/register', async (req, res) => {
+    try {
+        const { name, email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Faltan campos obligatorios' });
+        }
+        const newUser = await auth_service_1.authService.register(name || 'Usuario', email, password);
+        res.status(201).json({ message: 'Usuario registrado con éxito', user: newUser });
+    }
+    catch (error) {
+        res.status(400).json({ error: error.message || 'Error en el registro' });
+    }
+});
+// POST /api/auth/login
+router.post('/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Faltan campos obligatorios' });
+        }
+        const result = await auth_service_1.authService.login(email, password);
+        res.json(result);
+    }
+    catch (error) {
+        res.status(400).json({ error: error.message || 'Error en el inicio de sesión' });
+    }
+});
 exports.default = router;
