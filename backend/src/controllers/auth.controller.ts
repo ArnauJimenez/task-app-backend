@@ -1,8 +1,11 @@
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { PrismaClient } from "@prisma/client";
 
-import { prisma } from "../prisma/client";
+// Instanciamos Prisma directamente aquí (cero líos de rutas relativas)
+const prisma = new PrismaClient();
+
 import {
   registerSchema,
   loginSchema,
@@ -13,7 +16,6 @@ import {
 // =========================
 export const register = async (req: Request, res: Response) => {
   try {
-    // Validamos pasando el objeto con la propiedad body tal como pide el esquema
     const validatedData = registerSchema.parse({ body: req.body });
 
     const existingUser = await prisma.user.findUnique({
@@ -40,6 +42,7 @@ export const register = async (req: Request, res: Response) => {
       email: user.email,
     });
   } catch (error) {
+    req.log.error({ err: error }, "Registration failed");
     return res.status(500).json({
       message: "Register failed",
     });
@@ -51,7 +54,6 @@ export const register = async (req: Request, res: Response) => {
 // =========================
 export const login = async (req: Request, res: Response) => {
   try {
-    // Validamos pasando el objeto con la propiedad body tal como pide el esquema
     const validatedData = loginSchema.parse({ body: req.body });
 
     const user = await prisma.user.findUnique({
@@ -74,20 +76,16 @@ export const login = async (req: Request, res: Response) => {
         message: "Invalid credentials",
       });
     }
-
-    const token = jwt.sign(
-      {
-        userId: user.id,
-      },
-      process.env.JWT_SECRET || "tu_secret_por_si_acaso",
-      {
-        expiresIn: "7d",
-      }
-    );
+const token = jwt.sign(
+  { userId: user.id, email: user.email },
+  process.env.JWT_SECRET || "secreto_super_seguro", // 👈 Fíjate en este texto
+  { expiresIn: "1d" }
+);
 
     return res.json({ token });
 
   } catch (error) {
+    req.log.error({ err: error }, "Login failed");
     return res.status(500).json({
       message: "Login failed",
     });
@@ -99,8 +97,6 @@ export const login = async (req: Request, res: Response) => {
 // =========================
 export const me = async (req: Request, res: Response) => {
   try {
-    await new Promise((resolve) => setTimeout(resolve, 400));
-
     const decodedUser = (req as any).user;
 
     const user = await prisma.user.findUnique({
@@ -123,6 +119,7 @@ export const me = async (req: Request, res: Response) => {
     return res.json(user);
 
   } catch (error) {
+    req.log.error({ err: error }, "Failed to get authenticated user");
     return res.status(500).json({
       message: "Failed to get user",
     });

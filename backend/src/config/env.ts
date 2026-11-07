@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import dotenv from 'dotenv';
+import { logger } from './logger';
 
 // Cargamos el archivo .env
 dotenv.config();
@@ -17,8 +18,7 @@ PORT: z.string().default('3000').transform((val) => parseInt(val, 10)),
 const _env = envSchema.safeParse(process.env);
 
 if (!_env.success) {
-  console.error("❌ Error de configuración en las variables de entorno:");
-  console.error(JSON.stringify(_env.error.format(), null, 2));
+  logger.fatal({ errors: _env.error.format() }, 'Invalid environment configuration');
   // Apagamos el servidor de inmediato
   process.exit(1);
 }

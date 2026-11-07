@@ -60,6 +60,23 @@ npm run prisma:studio: Launches a visual GUI at localhost:5555 to explore and ma
 
 npm run test: Executes the complete unit and integration test suite with Vitest.
 
+## Real-time chat
+
+The authenticated dashboard includes private direct messages, email-based user search, typing indicators, and a per-user TaskBot conversation. Messages are persisted in PostgreSQL and delivered through Socket.IO. Messages sent to TaskBot are also sent to Google Gemini.
+
+1. Add `FRONTEND_URL`, `GEMINI_API_KEY`, and `GEMINI_MODEL` from `backend/src/.env.example` to the backend environment. Set `FRONTEND_URL` to the deployed frontend origin; the Gemini key is only needed to enable the bot.
+2. Set `VITE_API_URL` in the frontend build environment to the backend's public origin.
+3. Apply the Prisma schema to the PostgreSQL database with `npx prisma db push` from `backend`. The checked-in migration history was created for SQLite, while the current schema uses PostgreSQL; do not run `prisma migrate deploy` against PostgreSQL until that migration history has been baselined.
+4. Run `npm run dev` in `backend` and `frontend` for local development. For deployment, run the backend as a persistent Node.js service (`npm run build`, then `npm start`); Vercel serverless functions do not provide the persistent Socket.IO server this feature requires.
+
+The bot sends its conversation history to Google Gemini. Do not send sensitive information in that conversation.
+
+## Backend logging
+
+The Express API uses Pino and `pino-http` for structured request and application logs. In development and tests, logs are formatted with `pino-pretty`; in production they are emitted as JSON. Set `LOG_LEVEL` to override the default log level (`debug` outside production, `info` in production). Authorization, cookie, and set-cookie headers are redacted.
+
+Set `SENTRY_DSN` to enable backend error reporting. The `/debug-sentry` test route is available outside production; set `SENTRY_DEBUG_ROUTE_ENABLED=true` only when intentionally testing error reporting in a protected production environment.
+
 ## GitHub Actions CI
 
-The CI workflow runs on pushes and pull requests targeting `main` or `master`. Configure repository secrets `DATABASE_URL` and `JWT_SECRET` before running it.
+The `CI` workflow runs on pushes and pull requests targeting `main` or `master`. Configure the repository secrets `DATABASE_URL` and `JWT_SECRET` before running it. `DATABASE_URL` must point to a dedicated, disposable CI database: CI synchronizes the Prisma schema and the E2E test creates a user there. Never use a production database URL.

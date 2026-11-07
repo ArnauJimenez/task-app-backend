@@ -1,26 +1,34 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
 
-// Extendemos el tipo Request de Express para guardar el userId
-export interface AuthRequest extends Request {
-  userId?: string;
-}
+export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
 
-const JWT_SECRET = process.env.JWT_SECRET || 'secreto_super_seguro';
-
-export const verifyToken = (req: AuthRequest, res: Response, next: NextFunction) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
-
-  if (!token) {
-    return res.status(401).json({ error: 'Acceso denegado. No se proporcionó token.' });
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Access token missing or malformed" });
   }
 
+  const token = authHeader.split(" ")[1];
+  const secret = process.env.JWT_SECRET || "secreto_super_seguro";
+
   try {
-    const verified = jwt.verify(token, JWT_SECRET) as { userId: string };
-    req.userId = verified.userId; // Guardamos el ID del usuario en la petición
+    const decoded = jwt.verify(token, secret);
+    if (typeof decoded === "string") {
+      return res.status(403).json({ message: "Invalid or expired token" });
+    }
+
+    const userId = typeof decoded.userId === "string" ? decoded.userId : decoded.id;
+    if (typeof userId !== "string") {
+      return res.status(403).json({ message: "Invalid or expired token" });
+    }
+
+    req.user = {
+      id: userId,
+      email: typeof decoded.email === "string" ? decoded.email : undefined,
+      role: typeof decoded.role === "string" ? decoded.role : undefined,
+    };
     next();
   } catch (error) {
-    return res.status(403).json({ error: 'Token inválido o expirado.' });
+    return res.status(403).json({ message: "Invalid or expired token" });
   }
 };

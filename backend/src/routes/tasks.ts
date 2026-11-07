@@ -1,48 +1,91 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
+import { verifyToken as authenticateToken } from '../middlewares/auth.middleware';
+import { validate, createTaskSchema } from '../middlewares/validate';
 
 const router = Router();
 const prisma = new PrismaClient();
 
-// GET: Obtener todas las tareas
-router.get('/', async (req: Request, res: Response) => {
+// GET /api/tasks?search=comprar&completed=true&page=1&limit=10
+router.get('/', authenticateToken, async (req: Request, res: Response) => {
   try {
-    const tasks = await prisma.task.findMany({
-      include: { user: true },
-      orderBy: { createdAt: 'desc' }
-    });
-    res.json(tasks);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// POST: Crear una nueva tarea
-router.post('/', async (req: Request, res: Response) => {
-  try {
-    const { title, description, userId } = req.body;
-    
-    if (!userId || !title) {
-      return res.status(400).json({ error: 'El título y el userId son obligatorios' });
+    if (!req.user) {
+      res.status(401).json({ error: 'Usuario no autenticado' });
+      return;
     }
 
-    const newTask = await prisma.task.create({
-      data: { title, description, userId }
+    // Extracción y sanitización de Query Params
+    const search = typeof req.query.search === 'string' ? req.query.search : undefined;
+    const completedParam = typeof req.query.completed === 'string' ? req.query.completed : undefined;
+    const page = typeof req.query.page === 'string' ? req.query.page : '1';
+    const limit = typeof req.query.limit === 'string' ? req.query.limit : '10';
+
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 10;
+    const skip = (pageNum - 1) * limitNum;
+
+    // Filtros con tipado nativo de Prisma
+    const whereClause: Prisma.TaskWhereInput = {
+      userId: req.user.id, // TypeScript ya reconoce req.user sin quejas
+    };
+
+    if (search) {
+      whereClause.title = {
+        contains: search,
+      };
+    }
+
+    if (completedParam !== undefined && completedParam !== '') {
+      whereClause.completed = completedParam === 'true';
+    }
+
+    // Consulta paralela: datos paginados + contador total
+    const [tasks, total] = await Promise.all([
+      prisma.task.findMany({
+        where: whereClause,
+        skip,
+        take: limitNum,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.task.count({ where: whereClause }),
+    ]);
+
+    res.json({
+      data: tasks,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
+      },
     });
-    res.status(201).json(newTask);
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
+  } catch (error) {
+    req.log.error({ err: error }, 'Failed to get tasks');
+    res.status(500).json({ error: 'Error al obtener las tareas' });
   }
 });
 
-// DELETE: Eliminar una tarea por ID
-router.delete('/:id', async (req: Request, res: Response) => {
+// POST /api/tasks (Con validación Zod incorporada)
+router.post('/', authenticateToken, validate(createTaskSchema), async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    await prisma.task.delete({ where: { id } });
-    res.json({ message: 'Tarea eliminada correctamente' });
-  } catch (error: any) {
-    res.status(404).json({ error: 'No se pudo encontrar la tarea a eliminar' });
+    if (!req.user) {
+      res.status(401).json({ error: 'Usuario no autenticado' });
+      return;
+    }
+
+    const { title } = req.body;
+
+    const newTask = await prisma.task.create({
+      data: {
+        title,
+        userId: req.user.id, // TypeScript reconoce req.user.id perfectamente
+      },
+    });
+
+    res.status(201).json(newTask);
+  } catch (error) {
+    req.log.error({ err: error }, 'Failed to create task');
+    res.status(500).json({ error: 'Error al crear la tarea' });
   }
 });
 
