@@ -14,7 +14,18 @@ const verifyToken = (req, res, next) => {
     const secret = process.env.JWT_SECRET || "secreto_super_seguro";
     try {
         const decoded = jsonwebtoken_1.default.verify(token, secret);
-        req.user = decoded;
+        if (typeof decoded === "string") {
+            return res.status(403).json({ message: "Invalid or expired token" });
+        }
+        const userId = typeof decoded.userId === "string" ? decoded.userId : decoded.id;
+        if (typeof userId !== "string") {
+            return res.status(403).json({ message: "Invalid or expired token" });
+        }
+        req.user = {
+            id: userId,
+            email: typeof decoded.email === "string" ? decoded.email : undefined,
+            role: typeof decoded.role === "string" ? decoded.role : undefined,
+        };
         next();
     }
     catch (error) {

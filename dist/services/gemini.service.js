@@ -1,0 +1,42 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.generateGeminiReply = generateGeminiReply;
+const prisma_1 = require("../lib/prisma");
+async function generateGeminiReply(conversationId) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        throw new Error('El bot no está configurado: falta GEMINI_API_KEY en el backend');
+    }
+    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const messages = await prisma_1.prisma.message.findMany({
+        where: { conversationId },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        select: { content: true, isBot: true },
+    });
+    const contents = messages.reverse().map((message) => ({
+        role: message.isBot ? 'model' : 'user',
+        parts: [{ text: message.content }],
+    }));
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        body: JSON.stringify({
+            contents,
+            generationConfig: { maxOutputTokens: 512, temperature: 0.7 },
+        }),
+        signal: AbortSignal.timeout(30_000),
+    });
+    if (!response.ok) {
+        throw new Error(`Gemini API devolvió el estado ${response.status}`);
+    }
+    const result = await response.json();
+    const text = result.candidates?.[0]?.content?.parts
+        ?.map((part) => part.text ?? '')
+        .join('')
+        .trim();
+    if (!text) {
+        throw new Error('Gemini devolvió una respuesta vacía');
+    }
+    return text;
+}
