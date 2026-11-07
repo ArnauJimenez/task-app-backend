@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { isAxiosError } from "axios";
 import { UserPlus, LogIn } from "lucide-react";
-import { api } from "../services/api";
+import { api } from "../services/api.js";
 
 interface LoginFormProps {
   onLoginSuccess: (token: string) => void;
@@ -26,10 +27,14 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
       } else {
         onLoginSuccess(response.data.token);
       }
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const errorText = isAxiosError<{ message?: string }>(error)
+        && typeof error.response?.data?.message === "string"
+        ? error.response.data.message
+        : "Ocurrió un error inesperado";
       setMessage({
         type: "error",
-        text: err.response?.data?.message || "Ocurrió un error inesperado",
+        text: errorText,
       });
     }
   };
@@ -46,10 +51,11 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <div>
-            <label className="block text-[11px] font-medium uppercase tracking-wider mb-1 text-slate-400">
+            <label htmlFor="email" className="block text-[11px] font-medium uppercase tracking-wider mb-1 text-slate-400">
               Correo electrónico
             </label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -59,10 +65,11 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
           </div>
 
           <div>
-            <label className="block text-[11px] font-medium uppercase tracking-wider mb-1 text-slate-400">
+            <label htmlFor="password" className="block text-[11px] font-medium uppercase tracking-wider mb-1 text-slate-400">
               Contraseña
             </label>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CheckCircle2, Circle, Trash2, Pencil, Check, X } from "lucide-react";
-import type { Task } from "../types";
+import type { Task } from "../types.js";
 
 interface TaskItemProps {
   task: Task;

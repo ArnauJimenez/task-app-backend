@@ -1,5 +1,5 @@
-import type { Task } from "../types";
-import { TaskItem } from "./TaskItem";
+import type { Task } from "../types.js";
+import { TaskItem } from "./TaskItem.js";
 
 interface TaskListProps {
   tasks: Task[];

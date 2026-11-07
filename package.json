@@ -1,0 +1,23 @@
+{
+  "name": "proyecto2",
+  "version": "1.0.0",
+  "description": "A robust and secure RESTful API for task management, built with **Node.js**, **TypeScript**, and **Express**. The system features JWT-based authentication, strict input data validation at the entry point, and persistence using a fully dockerized PostgreSQL database.",
+  "main": "index.js",
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.6"
+  },
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ArnauJimenez/task-management-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ArnauJimenez/task-management-app/issues"
+  },
+  "homepage": "https://github.com/ArnauJimenez/task-management-app#readme"
+}
