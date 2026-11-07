@@ -1,0 +1,6 @@
+node_modules
+dist/
+build/
+.vitest-cache/
+*.tsbuildinfo
+node_modules
