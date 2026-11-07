@@ -59,3 +59,7 @@ npm run prisma:migrate: Applies outstanding database migrations using Prisma.
 npm run prisma:studio: Launches a visual GUI at localhost:5555 to explore and manage database records.
 
 npm run test: Executes the complete unit and integration test suite with Vitest.
+
+## GitHub Actions CI
+
+The CI workflow runs on pushes and pull requests targeting `main` or `master`. Configure repository secrets `DATABASE_URL` and `JWT_SECRET` before running it.
