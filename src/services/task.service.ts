@@ -16,6 +16,23 @@ export const taskService = {
     });
   },
 
+  updateUserTask: async (
+    id: string,
+    userId: string,
+    data: { completed: boolean },
+  ) => {
+    const result = await prisma.task.updateMany({
+      where: { id, userId },
+      data,
+    });
+
+    if (result.count === 0) {
+      return null;
+    }
+
+    return prisma.task.findFirst({ where: { id, userId } });
+  },
+
   getUserTasks: async (userId?: string) => {
     const where = userId ? { userId } : {};
     return await prisma.task.findMany({
@@ -41,5 +58,10 @@ export const taskService = {
     return await prisma.task.delete({
       where: { id },
     });
+  },
+
+  deleteUserTask: async (id: string, userId: string) => {
+    const result = await prisma.task.deleteMany({ where: { id, userId } });
+    return result.count > 0;
   },
 };

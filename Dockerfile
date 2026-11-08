@@ -1,18 +1,35 @@
-FROM node:20-slim
+# Etapa 1: Builder
+FROM node:20-slim AS builder
 WORKDIR /app
-RUN apt-get update -y && apt-get install -y openssl
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copiar todo el proyecto para asegurar que package.json y el código estén disponibles
+COPY package*.json ./
+COPY prisma ./prisma/
+RUN npm ci
+
 COPY . .
-
-# Instalar absolutamente todas las dependencias (incluyendo devDependencies para TypeScript)
-RUN npm install
-
-# Generar el cliente de Prisma
 RUN npx prisma generate
-
-# Compilar TypeScript
 RUN npm run build
 
-EXPOSE 4000
-CMD ["npm", "start"]
+# Etapa 2: Runner de producción
+FROM node:20-slim AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=3000
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY package*.json ./
+COPY prisma ./prisma/
+RUN npm ci --only=production
+RUN npx prisma generate
+
+COPY --from=builder /app/dist ./dist
+
+EXPOSE 3000
+CMD ["node", "dist/socket-server.js"]
