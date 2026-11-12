@@ -3,4 +3,6 @@ dist/
 build/
 .vitest-cache/
 *.tsbuildinfo
+.env
+.env.production
 node_modules

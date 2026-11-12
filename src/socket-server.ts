@@ -1,3 +1,4 @@
+import './instrument';
 import 'dotenv/config';
 import { createServer } from 'node:http';
 import jwt from 'jsonwebtoken';

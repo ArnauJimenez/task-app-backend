@@ -1,17 +1,22 @@
-import { Request, Response, NextFunction } from 'express';
+import { randomUUID } from 'node:crypto';
+import pinoHttp from 'pino-http';
+import { logger } from '../config/logger';
 
-export const requestLogger = (req: Request, res: Response, next: NextFunction): void => {
-  const start = Date.now();
-
-  // Escuchamos cuando la respuesta termina de enviarse al cliente
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    const status = res.statusCode;
-    
-    // Color o formato visual limpio para la consola
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} - Status: ${status} (${duration}ms)`);
-  });
-
-  next();
-};
-
+export const pinoHttpMiddleware = pinoHttp({
+  logger,
+  genReqId(req, res) {
+    const requestId = req.headers['x-request-id'];
+    const id = typeof requestId === 'string' && /^[\w.-]{1,128}$/.test(requestId)
+      ? requestId
+      : randomUUID();
+    res.setHeader('x-request-id', id);
+    return id;
+  },
+  customLogLevel(_req, res, error) {
+    if (error || res.statusCode >= 500) return 'error';
+    if (res.statusCode >= 400) return 'warn';
+    return 'info';
+  },
+  customSuccessMessage: () => 'HTTP request completed',
+  customErrorMessage: () => 'HTTP request failed',
+});

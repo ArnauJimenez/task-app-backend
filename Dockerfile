@@ -1,6 +1,7 @@
-# Etapa 1: Builder
-FROM node:20-slim AS builder
+FROM node:20-bookworm-slim AS builder
+
 WORKDIR /app
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends openssl \
     && rm -rf /var/lib/apt/lists/*
@@ -13,23 +14,27 @@ COPY . .
 RUN npx prisma generate
 RUN npm run build
 
-# Etapa 2: Runner de producción
-FROM node:20-slim AS runner
-WORKDIR /app
+FROM node:20-bookworm-slim AS production
 
 ENV NODE_ENV=production
 ENV PORT=3000
+
+WORKDIR /app
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends openssl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
-COPY prisma ./prisma/
-RUN npm ci --only=production
-RUN npx prisma generate
+RUN npm ci --omit=dev \
+    && npm cache clean --force
 
-COPY --from=builder /app/dist ./dist
+COPY --from=builder --chown=node:node /app/dist ./dist
+COPY --from=builder --chown=node:node /app/prisma ./prisma
+COPY --from=builder --chown=node:node /app/node_modules/.prisma ./node_modules/.prisma
+
+USER node
 
 EXPOSE 3000
+
 CMD ["node", "dist/socket-server.js"]
