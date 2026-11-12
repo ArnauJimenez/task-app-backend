@@ -1,3 +1,5 @@
+![CI Pipeline](https://github.com/ArnauJimenez/task-app-backend/actions/workflows/ci.yml/badge.svg)
+
 # Task App Backend
 
 A production-oriented backend for task management and conversational task automation. It provides a TypeScript/Express API, JWT-authenticated task operations, a Gemini-powered agent with CRUD tools, and real-time chat over Socket.IO.
@@ -44,7 +46,7 @@ A production-oriented backend for task management and conversational task automa
 Agent requests ──► Gemini adapter ──► tool calls ──► Zod ──► Prisma ──► PostgreSQL
 ```
 
-> **Database note:** The checked-in Prisma schema uses PostgreSQL in every environment. SQLite is present in legacy migration metadata, but SQLite is not a supported development runtime for the current schema. Local development, CI, and production should use PostgreSQL.
+> **Database note:** The Prisma schema and migration history use PostgreSQL. The initial PostgreSQL migration is intended for a new, empty database. Existing databases must be reviewed and baselined before enabling automatic migration deployment.
 
 ## Core stack
 
@@ -67,7 +69,7 @@ Agent requests ──► Gemini adapter ──► tool calls ──► Zod ─�
 - User-scoped task analytics for totals, pending/completed counts, and rounded completion rate. Urgent-task counts are unavailable because the current task schema has no priority field.
 - Real-time chat and conversation events using Socket.IO.
 - Request IDs returned in `x-request-id` and included in structured HTTP logs.
-- Health endpoint at `GET /api/health`.
+- Database readiness endpoints at `GET /health` and `GET /api/health`.
 
 ### Main HTTP routes
 
@@ -78,7 +80,8 @@ Agent requests ──► Gemini adapter ──► tool calls ──► Zod ─�
 | `/api/tasks` | Authenticated task CRUD |
 | `POST /api/agent/chat` | Send a prompt to the task agent (JWT required) |
 | `/api/chat` | Conversations and messages |
-| `GET /api/health` | Container and service health probe |
+| `GET /health` | Database-aware cloud/container readiness probe |
+| `GET /api/health` | Compatibility health endpoint |
 
 Use `Authorization: Bearer <token>` for protected routes. The agent endpoint accepts a JSON body such as `{"prompt":"Show my pending tasks"}`.
 
@@ -98,7 +101,7 @@ Pino HTTP middleware emits structured request-completion logs with status and re
 
 ### Reproducible CI database
 
-The GitHub Actions workflow starts an ephemeral PostgreSQL service, generates Prisma Client, syncs the schema, builds the TypeScript project, and runs the configured test command. The repository's migration history has legacy SQLite metadata, so CI uses `prisma db push` against its disposable PostgreSQL database instead of applying those migrations.
+The GitHub Actions workflow starts an ephemeral PostgreSQL service, generates Prisma Client, deploys PostgreSQL migrations, builds the TypeScript project, and runs the test suite.
 
 ## Local development
 
@@ -120,16 +123,16 @@ The GitHub Actions workflow starts an ephemeral PostgreSQL service, generates Pr
    **PowerShell**
 
    ```powershell
-   Copy-Item src/.env.example .env
+   Copy-Item .env.example .env
    ```
 
    **Bash**
 
    ```sh
-   cp src/.env.example .env
+   cp .env.example .env
    ```
 
-   Ensure `DATABASE_URL` points to the local PostgreSQL instance (the included Compose service maps host port `5433` to container port `5432`) and set a private `JWT_SECRET` of at least eight characters. Add `GEMINI_API_KEY` to enable Gemini-backed chat and agent features. Do not commit `.env`.
+   Ensure `DATABASE_URL` points to the local PostgreSQL instance (the included Compose service maps host port `5433` to container port `5432`) and set a private `JWT_SECRET` of at least eight characters. Set `CORS_ORIGIN` to one or more comma-separated frontend origins. Add `GEMINI_API_KEY` to enable Gemini-backed chat and agent features. Do not commit `.env`.
 
 3. Start PostgreSQL:
 
@@ -137,11 +140,11 @@ The GitHub Actions workflow starts an ephemeral PostgreSQL service, generates Pr
    docker compose up -d postgres_db
    ```
 
-4. Generate Prisma Client and synchronize the local database schema:
+4. Generate Prisma Client and apply PostgreSQL migrations:
 
    ```sh
    npx prisma generate
-   npx prisma db push
+   npm run db:migrate:deploy
    ```
 
 5. Start the development server:
@@ -150,10 +153,10 @@ The GitHub Actions workflow starts an ephemeral PostgreSQL service, generates Pr
    npm run dev
    ```
 
-The API and Socket.IO server listen on `http://localhost:3000` by default. Override `PORT` in `.env` if needed. Check readiness with:
+The API and Socket.IO server listen on `http://localhost:3000` by default. Override `PORT` in `.env` if needed. `/health` checks PostgreSQL connectivity and returns HTTP 503 when the database is unavailable:
 
 ```sh
-curl http://localhost:3000/api/health
+curl http://localhost:3000/health
 ```
 
 ## Production with Docker Compose
@@ -166,6 +169,7 @@ POSTGRES_PASSWORD=replace-with-a-strong-password
 POSTGRES_DB=tasks
 DATABASE_URL=postgresql://task_app:replace-with-a-strong-password@postgres_db:5432/tasks?schema=public
 JWT_SECRET=replace-with-a-long-random-secret
+CORS_ORIGIN=https://your-frontend.example.com
 PORT=3000
 ```
 
@@ -179,7 +183,17 @@ docker compose -f docker-compose.prod.yml --env-file .env.production ps
 docker compose -f docker-compose.prod.yml --env-file .env.production logs --tail 100 api_server
 ```
 
-The API is published on `${PORT:-3000}`; PostgreSQL remains private to the Compose network. The API waits for PostgreSQL's health check, and both services define health checks. Test the API with `curl http://localhost:3000/api/health` (replace `3000` if `PORT` differs).
+The API is published on `${PORT:-3000}`; PostgreSQL remains private to the Compose network. Startup runs `prisma migrate deploy` before starting the API. The API waits for PostgreSQL's health check, and its readiness endpoint checks an actual database connection. Test with `curl http://localhost:3000/health` (replace `3000` if `PORT` differs).
+
+### Cloud Deployment & Live Demo
+
+For a small cloud deployment, create a PostgreSQL database in [Neon](https://neon.tech/) and deploy this repository to [Render](https://render.com/) using its Docker runtime and the repository `Dockerfile`. Configure Render's environment variables with the Neon `DATABASE_URL` (including `?sslmode=require`), a strong `JWT_SECRET`, `CORS_ORIGIN` set to the frontend's exact HTTPS origin(s), and any optional `GEMINI_API_KEY` or `SENTRY_DSN`. Render supplies `PORT`; the server binds to `0.0.0.0` and uses that value.
+
+The container applies migrations before listening. The initial PostgreSQL baseline requires an empty database. Do not point it at a database containing existing tables or data unless that database has been deliberately baselined against this migration history. Configure Render's health check path as `/health`; it returns `200` only when PostgreSQL is reachable.
+
+Free-tier instances may spin down while idle, so the first request after a cold start can take around 30 seconds. Add the deployed API URL here once available: **Live API:** _not deployed_.
+
+`CORS_ORIGIN` accepts comma-separated exact origins and `*` wildcard patterns such as `https://*.example.com`. A bare `*` allows every browser origin and should only be used intentionally. When unset, the backend defaults to `http://localhost:5173`. `FRONTEND_URL` remains supported as a legacy fallback.
 
 Stop the stack without deleting its database volume:
 
@@ -196,13 +210,9 @@ npm test
 npm run build
 ```
 
-`npm test` currently runs `src/auth.test.ts`, which is also the test command used by CI. To run all Vitest tests, including the agent and telemetry suites:
+`npm test` runs the Vitest unit and service suites. Database-backed authentication integration tests are separated into `npm run test:integration`; they require a reachable PostgreSQL database configured by `DATABASE_URL`. CI runs both commands against its ephemeral PostgreSQL service.
 
-```sh
-npx vitest run
-```
-
-The authentication integration test uses a real database and requires a reachable PostgreSQL database configured by `DATABASE_URL`; most agent tool tests use mocked Prisma calls. Avoid running destructive database setup commands against shared or production databases.
+Avoid running migrations or destructive database setup commands against shared or production databases without reviewing their impact.
 
 ## Configuration reference
 
@@ -212,6 +222,7 @@ The authentication integration test uses a real database and requires a reachabl
 | `JWT_SECRET` | Yes | Signing secret for authentication tokens |
 | `PORT` | No | HTTP and Socket.IO port; defaults to `3000` |
 | `FRONTEND_URL` | No | Allowed frontend origin(s); defaults to `http://localhost:5173` |
+| `CORS_ORIGIN` | No | Comma-separated allowed origins/patterns; takes precedence over `FRONTEND_URL` |
 | `GEMINI_API_KEY` | For agent / bot | Gemini API credential |
 | `GEMINI_MODEL` | No | Gemini model name |
 | `GEMINI_TIMEOUT_MS` | No | Gemini request timeout |

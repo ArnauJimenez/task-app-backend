@@ -37,4 +37,4 @@ USER node
 
 EXPOSE 3000
 
-CMD ["node", "dist/socket-server.js"]
+CMD ["npm", "start"]

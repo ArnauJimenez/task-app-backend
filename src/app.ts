@@ -3,6 +3,8 @@ import cors from 'cors';
 import express from 'express';
 import * as Sentry from '@sentry/node';
 import { logger } from './config/logger';
+import { isCorsOriginAllowed } from './config/cors';
+import { prisma } from './lib/prisma';
 import { pinoHttpMiddleware } from './middlewares/logger.middleware';
 import authRoutes from './routes/auth.routes';
 import taskRoutes from './routes/task.routes';
@@ -13,13 +15,8 @@ export const app = express();
 
 app.use(pinoHttpMiddleware);
 
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
-
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => callback(null, isCorsOriginAllowed(origin)),
   credentials: true
 }));
 
@@ -29,9 +26,18 @@ app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Backend funcionando correctamente' });
 });
 
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
-});
+const healthCheck: express.RequestHandler = async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.status(200).json({ status: 'ok', database: 'connected' });
+  } catch (error) {
+    logger.error({ err: error }, 'Database readiness check failed');
+    res.status(503).json({ status: 'error', database: 'unavailable' });
+  }
+};
+
+app.get('/health', healthCheck);
+app.get('/api/health', healthCheck);
 
 if (process.env.NODE_ENV !== 'production' || process.env.SENTRY_DEBUG_ROUTE_ENABLED === 'true') {
   app.get('/debug-sentry', () => {

@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
 import { app } from './app';
+import { isCorsOriginAllowed } from './config/cors';
 import { prisma } from './lib/prisma';
 import { generateGeminiReply } from './services/gemini.service';
 
@@ -43,15 +44,13 @@ interface ServerToClientEvents {
 }
 
 const httpServer = createServer(app);
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
-
 export const io = new Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>(
   httpServer,
   {
-    cors: { origin: allowedOrigins, credentials: true },
+    cors: {
+      origin: (origin, callback) => callback(null, isCorsOriginAllowed(origin)),
+      credentials: true,
+    },
   },
 );
 
@@ -258,7 +257,7 @@ io.on('connection', (socket) => {
   });
 });
 
-const port = Number(process.env.PORT || 4000);
+const port = Number(process.env.PORT || 3000);
 httpServer.listen(port, '0.0.0.0', () => {
   console.info(`Servidor HTTP y Socket.IO escuchando en el puerto ${port}`);
 });
