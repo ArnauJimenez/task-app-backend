@@ -5,4 +5,3 @@ build/
 *.tsbuildinfo
 .env
 .env.production
-node_modules
