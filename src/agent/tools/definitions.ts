@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { createTaskSchema } from './create-task.tool';
 import { deleteTaskSchema } from './delete-task.tool';
+import { getTaskAnalyticsSchema } from './task-analytics.tool';
 import { updateTaskSchema } from '../schemas/task.schema';
 
 export const getTasksSchema = z.object({
@@ -51,6 +52,11 @@ export const agentTools = {
     name: 'delete_task',
     description: "Delete one of the current user's tasks.",
     schema: deleteTaskSchema,
+  },
+  get_task_analytics: {
+    name: 'get_task_analytics',
+    description: "Get task totals, completion rate, and pending counts for the authenticated user. Urgent task counts are unavailable because tasks do not currently have a priority field.",
+    schema: getTaskAnalyticsSchema,
   },
 } as const;
 

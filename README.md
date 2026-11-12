@@ -63,7 +63,8 @@ Agent requests ──► Gemini adapter ──► tool calls ──► Zod ─�
 - JWT-based registration and login.
 - Authenticated task creation, listing, retrieval, update, and deletion.
 - Per-user data isolation: task reads and mutations are scoped to the authenticated `userId`.
-- Conversational task agent at `POST /api/agent/chat`, with `get_tasks`, `create_task`, `update_task`, and `delete_task` tools.
+- Conversational task agent at `POST /api/agent/chat`, with `get_tasks`, `get_task_analytics`, `create_task`, `update_task`, and `delete_task` tools.
+- User-scoped task analytics for totals, pending/completed counts, and rounded completion rate. Urgent-task counts are unavailable because the current task schema has no priority field.
 - Real-time chat and conversation events using Socket.IO.
 - Request IDs returned in `x-request-id` and included in structured HTTP logs.
 - Health endpoint at `GET /api/health`.

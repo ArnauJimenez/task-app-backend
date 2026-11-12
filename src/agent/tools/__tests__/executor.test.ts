@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { logger } from '../../../config/logger';
 import { prisma } from '../../../lib/prisma';
+import { analyticsService } from '../../../services/analytics.service';
 import { taskService } from '../../../services/task.service';
 import { ToolExecutor } from '../executor';
 
@@ -21,13 +22,18 @@ const mockTaskService = {
   'deleteUserTask' | 'getUserTasks' | 'updateUserTask'
 >;
 
+const mockAnalyticsService = {
+  getUserTaskAnalytics: vi.fn<typeof analyticsService.getUserTaskAnalytics>(),
+} satisfies Pick<typeof analyticsService, 'getUserTaskAnalytics'>;
+
 describe('ToolExecutor (Unit Tests)', () => {
   let toolExecutor: ToolExecutor;
 
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(prisma.task.create).mockReset();
-    toolExecutor = new ToolExecutor(mockTaskService);
+    mockAnalyticsService.getUserTaskAnalytics.mockReset();
+    toolExecutor = new ToolExecutor(mockTaskService, mockAnalyticsService);
   });
 
   it('returns an error when the tool does not exist', async () => {
@@ -150,6 +156,37 @@ describe('ToolExecutor (Unit Tests)', () => {
 
     expect(result).toEqual({ success: true, data: [] });
     expect(mockTaskService.getUserTasks).toHaveBeenCalledWith('user-123');
+  });
+
+  it('gets task analytics for the authenticated user only', async () => {
+    const analytics = {
+      totalTasks: 5,
+      completedTasks: 2,
+      pendingTasks: 3,
+      urgentPendingTasks: null,
+      priorityTrackingAvailable: false,
+      completionRatePercentage: 40,
+    };
+    mockAnalyticsService.getUserTaskAnalytics.mockResolvedValueOnce(analytics);
+
+    const result = await toolExecutor.execute('get_task_analytics', {}, 'user-123');
+
+    expect(result).toEqual({ success: true, data: analytics });
+    expect(mockAnalyticsService.getUserTaskAnalytics).toHaveBeenCalledWith('user-123');
+  });
+
+  it('rejects unexpected analytics arguments before querying data', async () => {
+    const result = await toolExecutor.execute(
+      'get_task_analytics',
+      { userId: 'another-user' },
+      'user-123',
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      error: expect.stringContaining('Invalid input'),
+    });
+    expect(mockAnalyticsService.getUserTaskAnalytics).not.toHaveBeenCalled();
   });
 
   it('updates task status and description for the authenticated user', async () => {

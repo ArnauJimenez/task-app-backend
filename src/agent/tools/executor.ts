@@ -1,9 +1,11 @@
 import { ZodError } from 'zod';
 import { logger } from '../../config/logger';
+import { analyticsService } from '../../services/analytics.service';
 import { taskService } from '../../services/task.service';
 import { executeCreateTask } from './create-task.tool';
 import { executeDeleteTask } from './delete-task.tool';
 import { executeUpdateTask } from './update-task.tool';
+import { executeGetTaskAnalytics } from './task-analytics.tool';
 import {
   agentTools,
   getTasksSchema,
@@ -26,7 +28,10 @@ function validationError(error: ZodError): string {
 }
 
 export class ToolExecutor {
-  constructor(private readonly tasks: TaskToolService = taskService) {}
+  constructor(
+    private readonly tasks: TaskToolService = taskService,
+    private readonly analytics: Pick<typeof analyticsService, 'getUserTaskAnalytics'> = analyticsService,
+  ) {}
 
   async execute(
     toolName: string,
@@ -80,6 +85,10 @@ export class ToolExecutor {
 
         case 'delete_task': {
           return await executeDeleteTask(rawArgs, userId, this.tasks);
+        }
+
+        case 'get_task_analytics': {
+          return await executeGetTaskAnalytics(rawArgs, userId, this.analytics);
         }
 
         default:

@@ -11,6 +11,7 @@ describe('getFormattedAgentTools', () => {
       'update_task_status',
       'update_task',
       'delete_task',
+      'get_task_analytics',
     ]);
 
     const getTasks = tools.find((tool) => tool.name === 'get_tasks');
@@ -63,6 +64,13 @@ describe('getFormattedAgentTools', () => {
         id: { type: 'string', format: 'uuid' },
       },
       required: ['id'],
+      additionalProperties: false,
+    });
+
+    const taskAnalytics = tools.find((tool) => tool.name === 'get_task_analytics');
+    expect(taskAnalytics?.parameters).toMatchObject({
+      type: 'object',
+      properties: {},
       additionalProperties: false,
     });
   });
