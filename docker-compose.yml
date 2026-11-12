@@ -13,22 +13,5 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # 🚀 SERVICIO DE TU API (Node.js)
-  api_server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: tasks_api_server
-    restart: always
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - DATABASE_URL=postgresql://arnau_user:super_password_docker@postgres_db:5432/tasks_api_db?schema=public
-      - JWT_SECRET=clave_secreta_para_entorno_docker_de_gems
-    depends_on:
-      - postgres_db
-
 volumes:
   postgres_data:

@@ -1,21 +1,22 @@
 import { ZodError } from 'zod';
 import { logger } from '../../config/logger';
 import { taskService } from '../../services/task.service';
+import { executeCreateTask } from './create-task.tool';
+import { executeDeleteTask } from './delete-task.tool';
+import { executeUpdateTask } from './update-task.tool';
 import {
   agentTools,
-  createTaskSchema,
-  deleteTaskSchema,
   getTasksSchema,
   updateTaskStatusSchema,
 } from './definitions';
 
 export type ToolExecutionResult =
-  | { success: true; data: unknown }
+  | { success: true; data: unknown; message?: string }
   | { success: false; error: string };
 
 type TaskToolService = Pick<
   typeof taskService,
-  'createTask' | 'deleteUserTask' | 'getUserTasks' | 'updateUserTask'
+  'deleteUserTask' | 'getUserTasks' | 'updateUserTask'
 >;
 
 function validationError(error: ZodError): string {
@@ -58,15 +59,14 @@ export class ToolExecutor {
         }
 
         case 'create_task': {
-          const input = createTaskSchema.parse(rawArgs);
-          const task = await this.tasks.createTask(input.title, input.description, userId);
-          return { success: true, data: task };
+          return await executeCreateTask(rawArgs, userId);
         }
 
         case 'update_task_status': {
           const input = updateTaskStatusSchema.parse(rawArgs);
           const task = await this.tasks.updateUserTask(input.taskId, userId, {
             completed: input.status === 'COMPLETED',
+            ...(input.description !== undefined ? { description: input.description } : {}),
           });
           if (!task) {
             return { success: false, error: 'Task not found' };
@@ -74,16 +74,12 @@ export class ToolExecutor {
           return { success: true, data: task };
         }
 
+        case 'update_task': {
+          return await executeUpdateTask(rawArgs, userId, this.tasks);
+        }
+
         case 'delete_task': {
-          const input = deleteTaskSchema.parse(rawArgs);
-          const deleted = await this.tasks.deleteUserTask(input.taskId, userId);
-          if (!deleted) {
-            return { success: false, error: 'Task not found' };
-          }
-          return {
-            success: true,
-            data: { message: `Task ${input.taskId} deleted successfully` },
-          };
+          return await executeDeleteTask(rawArgs, userId, this.tasks);
         }
 
         default:
@@ -92,6 +88,12 @@ export class ToolExecutor {
     } catch (error: unknown) {
       if (error instanceof ZodError) {
         return { success: false, error: `Invalid input: ${validationError(error)}` };
+      }
+      if (
+        error instanceof Error
+        && error.message === 'Task not found or does not belong to the authenticated user.'
+      ) {
+        return { success: false, error: error.message };
       }
 
       logger.error({ err: error, toolName, userId }, 'Agent tool execution failed');

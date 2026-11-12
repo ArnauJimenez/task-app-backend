@@ -44,6 +44,7 @@ const Sentry = __importStar(require("@sentry/node"));
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const task_routes_1 = __importDefault(require("./routes/task.routes"));
 const chat_routes_1 = __importDefault(require("./routes/chat.routes"));
+const agent_routes_1 = __importDefault(require("./routes/agent.routes"));
 exports.app = (0, express_1.default)();
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
     .split(',')
@@ -68,4 +69,5 @@ if (process.env.NODE_ENV !== 'production' || process.env.SENTRY_DEBUG_ROUTE_ENAB
 exports.app.use('/api/auth', auth_routes_1.default);
 exports.app.use('/api/tasks', task_routes_1.default);
 exports.app.use('/api/chat', chat_routes_1.default);
+exports.app.use('/api/agent', agent_routes_1.default);
 Sentry.setupExpressErrorHandler(exports.app);

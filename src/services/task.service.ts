@@ -1,5 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import { prisma } from "../lib/prisma";
 
 export const taskService = {
   createTask: async (title: string, description: string | undefined, userId: string) => {
@@ -19,7 +18,7 @@ export const taskService = {
   updateUserTask: async (
     id: string,
     userId: string,
-    data: { completed: boolean },
+    data: { title?: string; description?: string; completed?: boolean },
   ) => {
     const result = await prisma.task.updateMany({
       where: { id, userId },
@@ -54,6 +53,13 @@ export const taskService = {
     });
   },
 
+  getUserById: async (id: string) => {
+    return await prisma.user.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+  },
+
   deleteTask: async (id: string) => {
     return await prisma.task.delete({
       where: { id },
@@ -64,4 +70,6 @@ export const taskService = {
     const result = await prisma.task.deleteMany({ where: { id, userId } });
     return result.count > 0;
   },
+
+  disconnect: async () => prisma.$disconnect(),
 };

@@ -7,7 +7,7 @@ async function generateGeminiReply(conversationId) {
     if (!apiKey) {
         throw new Error('El bot no está configurado: falta GEMINI_API_KEY en el backend');
     }
-    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const model = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
     const messages = await prisma_1.prisma.message.findMany({
         where: { conversationId },
         orderBy: { createdAt: 'desc' },

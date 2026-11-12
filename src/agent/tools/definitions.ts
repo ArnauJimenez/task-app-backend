@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { createTaskSchema } from './create-task.tool';
+import { deleteTaskSchema } from './delete-task.tool';
+import { updateTaskSchema } from '../schemas/task.schema';
 
 export const getTasksSchema = z.object({
   status: z.enum(['PENDING', 'COMPLETED']).optional()
@@ -9,23 +12,13 @@ export const getTasksSchema = z.object({
     .describe('Maximum number of tasks to return (default 10)'),
 });
 
-export const createTaskSchema = z.object({
-  title: z.string().trim().min(3, 'Title must be at least 3 characters long').max(100)
-    .describe('Clear and concise title for the new task'),
-  description: z.string().max(10_000).optional()
-    .describe('Optional details for the task'),
-});
-
 export const updateTaskStatusSchema = z.object({
   taskId: z.string().uuid('Invalid UUID format for taskId')
     .describe('Unique identifier of the task to update'),
   status: z.enum(['PENDING', 'COMPLETED'])
     .describe('Target task completion status'),
-});
-
-export const deleteTaskSchema = z.object({
-  taskId: z.string().uuid('Invalid UUID format for taskId')
-    .describe('Unique identifier of the task to delete'),
+  description: z.string().optional()
+    .describe('Optional new description for the task'),
 });
 
 export type GetTasksInput = z.input<typeof getTasksSchema>;
@@ -49,6 +42,11 @@ export const agentTools = {
     description: "Mark one of the current user's tasks pending or completed.",
     schema: updateTaskStatusSchema,
   },
+  update_task: {
+    name: 'update_task',
+    description: "Update at least one of the title, description, or completion status fields of one of the current user's tasks.",
+    schema: updateTaskSchema,
+  },
   delete_task: {
     name: 'delete_task',
     description: "Delete one of the current user's tasks.",
@@ -56,4 +54,6 @@ export const agentTools = {
   },
 } as const;
 
+export { createTaskSchema };
+export { updateTaskSchema };
 export type AgentToolName = keyof typeof agentTools;

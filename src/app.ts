@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/node';
 import authRoutes from './routes/auth.routes';
 import taskRoutes from './routes/task.routes';
 import chatRoutes from './routes/chat.routes';
+import agentRoutes from './routes/agent.routes';
 
 export const app = express();
 
@@ -37,5 +38,6 @@ if (process.env.NODE_ENV !== 'production' || process.env.SENTRY_DEBUG_ROUTE_ENAB
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/agent', agentRoutes);
 
 Sentry.setupExpressErrorHandler(app);
