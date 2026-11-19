@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { PrismaClient } from "@prisma/client";
 
-// Instanciamos Prisma directamente aquí (cero líos de rutas relativas)
+// Instantiate Prisma directly.
 const prisma = new PrismaClient();
 
 import {
@@ -42,7 +42,7 @@ export const register = async (req: Request, res: Response) => {
       email: user.email,
     });
   } catch (error) {
-    req.log.error({ err: error }, "Registration failed");
+    console.error("❌ Registration error:", error);
     return res.status(500).json({
       message: "Register failed",
     });
@@ -78,14 +78,14 @@ export const login = async (req: Request, res: Response) => {
     }
 const token = jwt.sign(
   { userId: user.id, email: user.email },
-  process.env.JWT_SECRET || "secreto_super_seguro", // 👈 Fíjate en este texto
+  process.env.JWT_SECRET || "secreto_super_seguro",
   { expiresIn: "1d" }
 );
 
     return res.json({ token });
 
   } catch (error) {
-    req.log.error({ err: error }, "Login failed");
+    console.error("❌ Login error:", error);
     return res.status(500).json({
       message: "Login failed",
     });
@@ -119,7 +119,7 @@ export const me = async (req: Request, res: Response) => {
     return res.json(user);
 
   } catch (error) {
-    req.log.error({ err: error }, "Failed to get authenticated user");
+    console.error("❌ Profile error:", error);
     return res.status(500).json({
       message: "Failed to get user",
     });

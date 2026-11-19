@@ -41,7 +41,7 @@ function toConversationSummary(conversation: ConversationWithSummary, userId: st
 function requireUserId(req: Request, res: Response): string | undefined {
   const userId = req.user?.id;
   if (!userId) {
-    res.status(401).json({ message: 'Usuario no autenticado' });
+    res.status(401).json({ message: 'User not authenticated' });
     return undefined;
   }
   return userId;
@@ -55,7 +55,7 @@ router.get('/users', async (req, res) => {
 
   const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
   if (search.length < 2) {
-    res.status(400).json({ message: 'La búsqueda debe contener al menos 2 caracteres' });
+    res.status(400).json({ message: 'Search must contain at least 2 characters' });
     return;
   }
 
@@ -71,8 +71,8 @@ router.get('/users', async (req, res) => {
     });
     res.json({ users });
   } catch (error) {
-    req.log.error({ err: error }, 'Failed to search users for chat');
-    res.status(500).json({ message: 'No se pudieron buscar usuarios' });
+    console.error('Error searching for chat users:', error);
+    res.status(500).json({ message: 'Could not search users' });
   }
 });
 
@@ -91,8 +91,8 @@ router.get('/conversations', async (req, res) => {
     });
     res.json({ conversations: conversations.map((item) => toConversationSummary(item, userId)) });
   } catch (error) {
-    req.log.error({ err: error }, 'Failed to get conversations');
-    res.status(500).json({ message: 'No se pudieron cargar las conversaciones' });
+    console.error('Error fetching conversations:', error);
+    res.status(500).json({ message: 'Could not load conversations' });
   }
 });
 
@@ -109,8 +109,8 @@ router.get('/conversations/bot', async (req, res) => {
     });
     res.json({ conversation: toConversationSummary(conversation, userId) });
   } catch (error) {
-    req.log.error({ err: error }, 'Failed to open bot conversation');
-    res.status(500).json({ message: 'No se pudo abrir el chat con el bot' });
+    console.error('Error opening bot chat:', error);
+    res.status(500).json({ message: 'Could not open bot chat' });
   }
 });
 
@@ -120,14 +120,14 @@ router.post('/conversations', async (req, res) => {
 
   const recipientId = typeof req.body?.userId === 'string' ? req.body.userId : '';
   if (!recipientId || recipientId === userId) {
-    res.status(400).json({ message: 'Selecciona otro usuario para iniciar la conversación' });
+    res.status(400).json({ message: 'Select another user to start a conversation' });
     return;
   }
 
   try {
     const recipient = await prisma.user.findUnique({ where: { id: recipientId }, select: { id: true } });
     if (!recipient) {
-      res.status(404).json({ message: 'Usuario no encontrado' });
+      res.status(404).json({ message: 'User not found' });
       return;
     }
 
@@ -140,8 +140,8 @@ router.post('/conversations', async (req, res) => {
     });
     res.json({ conversation: toConversationSummary(conversation, userId) });
   } catch (error) {
-    req.log.error({ err: error }, 'Failed to start conversation');
-    res.status(500).json({ message: 'No se pudo iniciar la conversación' });
+    console.error('Error starting conversation:', error);
+    res.status(500).json({ message: 'Could not start the conversation' });
   }
 });
 
@@ -158,7 +158,7 @@ router.get('/conversations/:conversationId/messages', async (req, res) => {
       select: { id: true },
     });
     if (!conversation) {
-      res.status(404).json({ message: 'Conversación no encontrada' });
+      res.status(404).json({ message: 'Conversation not found' });
       return;
     }
 
@@ -180,8 +180,8 @@ router.get('/conversations/:conversationId/messages', async (req, res) => {
       })),
     });
   } catch (error) {
-    req.log.error({ err: error }, 'Failed to get conversation messages');
-    res.status(500).json({ message: 'No se pudieron cargar los mensajes' });
+    console.error('Error fetching messages:', error);
+    res.status(500).json({ message: 'Could not load messages' });
   }
 });
 

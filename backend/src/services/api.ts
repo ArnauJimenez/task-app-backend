@@ -1,7 +1,7 @@
 const API_URL = 'http://localhost:3000/api';
 
 export const api = {
-  // Autenticación
+  // Authentication
   async register(name: string, email: string, password: string) {
     const res = await fetch(`${API_URL}/auth/register`, {
       method: 'POST',
@@ -9,7 +9,7 @@ export const api = {
       body: JSON.stringify({ name, email, password }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error en el registro');
+    if (!res.ok) throw new Error(data.error || 'Registration failed');
     return data;
   },
 
@@ -20,15 +20,15 @@ export const api = {
       body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Credenciales inválidas');
+    if (!res.ok) throw new Error(data.error || 'Invalid credentials');
     return data;
   },
 
-  // Tareas
+  // Tasks
   async getTasks() {
     const res = await fetch(`${API_URL}/tasks`);
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error al cargar tareas');
+    if (!res.ok) throw new Error(data.error || 'Failed to load tasks');
     return data;
   },
 
@@ -39,7 +39,7 @@ export const api = {
       body: JSON.stringify({ title, description, userId }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error al crear la tarea');
+    if (!res.ok) throw new Error(data.error || 'Failed to create task');
     return data;
   },
 
@@ -48,7 +48,7 @@ export const api = {
       method: 'DELETE',
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error al eliminar la tarea');
+    if (!res.ok) throw new Error(data.error || 'Failed to delete task');
     return data;
   },
 };

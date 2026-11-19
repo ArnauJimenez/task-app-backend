@@ -38,14 +38,14 @@ export function TaskItem({ task, onToggle, onDelete, onUpdate }: TaskItemProps) 
           <button
             onClick={handleSaveEdit}
             className="text-emerald-400 hover:text-emerald-300 p-1 cursor-pointer"
-            title="Guardar"
+            title="Save"
           >
             <Check size={16} />
           </button>
           <button
             onClick={handleCancelEdit}
             className="text-slate-400 hover:text-slate-300 p-1 cursor-pointer"
-            title="Cancelar"
+            title="Cancel"
           >
             <X size={16} />
           </button>
@@ -55,7 +55,7 @@ export function TaskItem({ task, onToggle, onDelete, onUpdate }: TaskItemProps) 
           <div 
             className="flex items-center gap-3 cursor-pointer select-none flex-1" 
             onClick={() => {
-              console.log("Clic en tarea:", task.id, "Estado actual completed:", task.completed);
+              console.log("Task clicked:", task.id, "Current completed state:", task.completed);
               onToggle(task.id, task.completed);
             }}
           >
@@ -72,14 +72,14 @@ export function TaskItem({ task, onToggle, onDelete, onUpdate }: TaskItemProps) 
             <button
               onClick={() => setIsEditing(true)}
               className="text-slate-500 hover:text-indigo-400 transition-colors p-1 cursor-pointer"
-              title="Editar"
+              title="Edit"
             >
               <Pencil size={15} />
             </button>
             <button
               onClick={() => onDelete(task.id)}
               className="text-slate-500 hover:text-rose-400 transition-colors p-1 cursor-pointer"
-              title="Eliminar"
+              title="Delete"
             >
               <Trash2 size={16} />
             </button>

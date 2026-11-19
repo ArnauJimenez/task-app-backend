@@ -1,11 +1,12 @@
-import './instrument.js';
+import './instrument';
+import 'dotenv/config';
 import { createServer } from 'node:http';
 import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
 import { app } from './app';
-import { logger } from './config/logger';
+import { isCorsOriginAllowed } from './config/cors';
 import { prisma } from './lib/prisma';
-import { generateGeminiReply } from './services/gemini.service';
+import { generateTaskBotReply } from './services/taskbot.service';
 
 interface SocketData {
   userId: string;
@@ -43,15 +44,13 @@ interface ServerToClientEvents {
 }
 
 const httpServer = createServer(app);
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
-
 export const io = new Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>(
   httpServer,
   {
-    cors: { origin: allowedOrigins, credentials: true },
+    cors: {
+      origin: (origin, callback) => callback(null, isCorsOriginAllowed(origin)),
+      credentials: true,
+    },
   },
 );
 
@@ -73,7 +72,7 @@ function toChatMessage(message: {
 io.use(async (socket, next) => {
   const token: unknown = socket.handshake.auth.token;
   if (typeof token !== 'string') {
-    next(new Error('Falta el token de autenticación'));
+    next(new Error('Authentication token is missing'));
     return;
   }
 
@@ -82,20 +81,20 @@ io.use(async (socket, next) => {
     decoded = jwt.verify(token, jwtSecret);
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      next(new Error('Token inválido o caducado'));
+      next(new Error('Invalid or expired token'));
       return;
     }
-    logger.error({ err: error }, 'Failed to validate Socket.IO token');
-    next(new Error('No se pudo validar la conexión'));
+    console.error('Error validating socket token:', error);
+    next(new Error('Could not validate the connection'));
     return;
   }
   if (typeof decoded === 'string') {
-    next(new Error('Token inválido o caducado'));
+    next(new Error('Invalid or expired token'));
     return;
   }
   const userId = typeof decoded.userId === 'string' ? decoded.userId : decoded.id;
   if (typeof userId !== 'string') {
-    next(new Error('Token inválido o caducado'));
+    next(new Error('Invalid or expired token'));
     return;
   }
 
@@ -105,27 +104,26 @@ io.use(async (socket, next) => {
       select: { id: true },
     });
     if (!user) {
-      next(new Error('Usuario no encontrado'));
+      next(new Error('User not found'));
       return;
     }
     socket.data.userId = user.id;
     socket.data.userId = user.id;
     next();
   } catch (error) {
-    logger.error({ err: error }, 'Failed to authenticate Socket.IO connection');
-    next(new Error('No se pudo validar la conexión'));
+    console.error('Error authenticating socket:', error);
+    next(new Error('Could not validate the connection'));
   }
 });
 
 io.on('connection', (socket) => {
   const { userId } = socket.data;
-  const socketLogger = logger.child({ socketId: socket.id, userId });
   socket.join(roomForUser(userId));
-  socketLogger.info('Chat client connected');
+  console.info(`Chat client connected: ${socket.id}`);
 
   socket.on('conversation:join', (conversationId, acknowledge) => {
     if (typeof acknowledge !== 'function') {
-      socketLogger.warn('Ignored conversation:join without acknowledgement callback');
+      console.warn('Ignored conversation:join without an acknowledgement callback');
       return;
     }
     void (async () => {
@@ -138,21 +136,21 @@ io.on('connection', (socket) => {
           select: { id: true },
         });
         if (!conversation) {
-          acknowledge({ error: 'Conversación no encontrada' });
+          acknowledge({ error: 'Conversation not found' });
           return;
         }
         await socket.join(roomForConversation(conversation.id));
         acknowledge({});
       } catch (error) {
-        socketLogger.error({ err: error, conversationId }, 'Failed to join conversation');
-        acknowledge({ error: 'No se pudo abrir la conversación' });
+        console.error('Error joining conversation:', error);
+        acknowledge({ error: 'Could not open the conversation' });
       }
     })();
   });
 
   socket.on('message:send', (payload, acknowledge) => {
     if (typeof acknowledge !== 'function') {
-      socketLogger.warn('Ignored message:send without acknowledgement callback');
+      console.warn('Ignored message:send without an acknowledgement callback');
       return;
     }
     void (async () => {
@@ -160,7 +158,7 @@ io.on('connection', (socket) => {
         const conversationId = typeof payload?.conversationId === 'string' ? payload.conversationId : '';
         const content = typeof payload?.content === 'string' ? payload.content.trim() : '';
         if (!conversationId || !content || content.length > 2000) {
-          acknowledge({ error: 'El mensaje debe tener entre 1 y 2000 caracteres' });
+          acknowledge({ error: 'Message must contain between 1 and 2000 characters' });
           return;
         }
 
@@ -171,14 +169,9 @@ io.on('connection', (socket) => {
           },
         });
         if (!conversation) {
-          acknowledge({ error: 'Conversación no encontrada' });
+          acknowledge({ error: 'Conversation not found' });
           return;
         }
-        if (conversation.isBot && !process.env.GEMINI_API_KEY) {
-          acknowledge({ error: 'El bot no está configurado: falta GEMINI_API_KEY en el backend' });
-          return;
-        }
-
         const savedMessage = await prisma.$transaction(async (transaction) => {
           const message = await transaction.message.create({
             data: { conversationId, content, senderId: userId },
@@ -199,7 +192,7 @@ io.on('connection', (socket) => {
         if (conversation.isBot) {
           void (async () => {
             try {
-              const content = await generateGeminiReply(conversationId);
+              const content = await generateTaskBotReply(conversationId, userId);
               const botMessage = await prisma.$transaction(async (transaction) => {
                 const created = await transaction.message.create({
                   data: { conversationId, content, isBot: true },
@@ -213,17 +206,17 @@ io.on('connection', (socket) => {
               io.to(roomForConversation(conversationId)).emit('message:new', toChatMessage(botMessage));
               io.to(roomForUser(userId)).emit('conversation:updated', conversationId);
             } catch (error) {
-              socketLogger.error({ err: error, conversationId }, 'Failed to generate Gemini reply');
+              console.error('Error generating TaskBot response:', error);
               io.to(roomForUser(userId)).emit('chat:error', {
                 conversationId,
-                message: 'El bot no pudo responder. Inténtalo de nuevo más tarde.',
+                message: 'The bot could not respond. Please try again later.',
               });
             }
           })();
         }
       } catch (error) {
-        socketLogger.error({ err: error }, 'Failed to send chat message');
-        acknowledge({ error: 'No se pudo enviar el mensaje' });
+        console.error('Error sending message:', error);
+        acknowledge({ error: 'Could not send the message' });
       }
     })();
   });
@@ -247,7 +240,7 @@ io.on('connection', (socket) => {
           });
         }
       } catch (error) {
-        socketLogger.error({ err: error }, 'Failed to update typing status');
+        console.error('Error updating typing status:', error);
       }
     })();
   };
@@ -255,13 +248,13 @@ io.on('connection', (socket) => {
   socket.on('typing:start', forwardTyping(true));
   socket.on('typing:stop', forwardTyping(false));
   socket.on('disconnect', (reason) => {
-    socketLogger.info({ reason }, 'Chat client disconnected');
+    console.info(`Chat client disconnected: ${socket.id} (${reason})`);
   });
 });
 
-const port = Number(process.env.PORT || 4000);
+const port = Number(process.env.PORT || 3000);
 httpServer.listen(port, '0.0.0.0', () => {
-  logger.info({ port }, 'HTTP and Socket.IO server listening');
+  console.info(`HTTP and Socket.IO server listening on port ${port}`);
 });
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
@@ -270,7 +263,7 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
       void prisma.$disconnect().then(
         () => process.exit(0),
         (error: unknown) => {
-          logger.error({ err: error }, 'Failed to disconnect from PostgreSQL');
+          console.error('Error closing PostgreSQL connection:', error);
           process.exit(1);
         },
       );

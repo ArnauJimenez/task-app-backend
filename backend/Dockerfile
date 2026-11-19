@@ -1,18 +1,40 @@
-FROM node:20-slim
+FROM node:20-bookworm-slim AS builder
+
 WORKDIR /app
-RUN apt-get update -y && apt-get install -y openssl
 
-# Copiar todo el proyecto para asegurar que package.json y el código estén disponibles
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY package*.json ./
+COPY prisma ./prisma/
+RUN npm ci
+
 COPY . .
-
-# Instalar absolutamente todas las dependencias (incluyendo devDependencies para TypeScript)
-RUN npm install
-
-# Generar el cliente de Prisma
 RUN npx prisma generate
-
-# Compilar TypeScript
 RUN npm run build
 
-EXPOSE 4000
+FROM node:20-bookworm-slim AS production
+
+ENV NODE_ENV=production
+ENV PORT=3000
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY package*.json ./
+RUN npm ci --omit=dev \
+    && npm cache clean --force
+
+COPY --from=builder --chown=node:node /app/dist ./dist
+COPY --from=builder --chown=node:node /app/prisma ./prisma
+COPY --from=builder --chown=node:node /app/node_modules/.prisma ./node_modules/.prisma
+
+USER node
+
+EXPOSE 3000
+
 CMD ["npm", "start"]

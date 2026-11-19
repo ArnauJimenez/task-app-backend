@@ -3,6 +3,7 @@ node_modules/
 
 # Variables de entorno con contraseñas secretas (¡MUY IMPORTANTE!)
 .env
+.env.local
 
 # Archivos generados por Prisma
 /prisma/dev.db
@@ -11,6 +12,10 @@ node_modules/
 # Carpetas de compilación (si usas dist o build en el futuro)
 dist/
 build/
+
+# TypeScript and Vitest caches
+.vitest-cache/
+*.tsbuildinfo
 
 # Archivos del sistema operativo
 .DS_Store

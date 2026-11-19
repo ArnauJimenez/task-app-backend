@@ -1,12 +1,19 @@
 import axios from "axios";
 
-const rawApiUrl = import.meta.env.VITE_API_URL;
-console.log("VITE_API_URL actual:", rawApiUrl); // Esto saldrá en la consola del navegador (F12)
+function stripTrailingSlashes(value: string): string {
+  return value.replace(/\/+$/, "");
+}
 
-export const apiOrigin = rawApiUrl ? new URL(rawApiUrl).origin : "http://localhost:4000";
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
+const apiServerUrl = configuredApiUrl ? stripTrailingSlashes(configuredApiUrl) : "";
+const apiPathBase = apiServerUrl.endsWith("/api") ? apiServerUrl : `${apiServerUrl}/api`;
+
+export const apiBaseUrl = apiPathBase || "/api";
+export const socketUrl = import.meta.env.VITE_SOCKET_URL?.trim()
+  || (apiServerUrl ? apiServerUrl.replace(/\/api$/, "") : window.location.origin);
 
 export const api = axios.create({
-  baseURL: rawApiUrl ? `${rawApiUrl}/api` : "http://localhost:4000/api",
+  baseURL: apiBaseUrl,
   headers: {
     "Content-Type": "application/json",
   },

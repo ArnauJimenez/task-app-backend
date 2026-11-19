@@ -2,7 +2,7 @@ import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } fro
 import { Bot, LoaderCircle, MessageCircle, Search, Send, Wifi, WifiOff } from "lucide-react";
 import { io, type Socket } from "socket.io-client";
 import { isAxiosError } from "axios";
-import { api, apiOrigin } from "../services/api.js";
+import { api, socketUrl } from "../services/api.js";
 
 interface ChatUser {
   id: string;
@@ -114,7 +114,7 @@ export function Chat({ token, onUnauthorized }: ChatProps) {
       ]);
       setConversations([botResponse.data.conversation, ...listResponse.data.conversations]);
     } catch (requestError) {
-      handleRequestError(requestError, "No se pudieron cargar las conversaciones");
+      handleRequestError(requestError, "Could not load conversations");
     }
   }, [handleRequestError]);
 
@@ -130,7 +130,7 @@ export function Chat({ token, onUnauthorized }: ChatProps) {
   }, [loadConversations]);
 
   useEffect(() => {
-    const connection = io(apiOrigin, {
+    const connection = io(socketUrl, {
       auth: { token },
       reconnection: true,
     }) as Socket<ServerToClientEvents, ClientToServerEvents>;
@@ -170,7 +170,7 @@ export function Chat({ token, onUnauthorized }: ChatProps) {
     const onDisconnect = () => setIsConnected(false);
     const onConnectError = () => {
       setIsConnected(false);
-      setError("No se pudo conectar al chat en tiempo real");
+      setError("Could not connect to real-time chat");
     };
 
     connection.on("connect", joinActiveConversation);
@@ -204,7 +204,7 @@ export function Chat({ token, onUnauthorized }: ChatProps) {
         }
       })
       .catch((requestError: unknown) => {
-        if (!cancelled) handleRequestError(requestError, "No se pudieron cargar los mensajes");
+        if (!cancelled) handleRequestError(requestError, "Could not load messages");
       })
       .finally(() => {
         if (!cancelled) setIsLoadingMessages(false);
@@ -232,7 +232,7 @@ export function Chat({ token, onUnauthorized }: ChatProps) {
           if (active) setUsers(response.data.users);
         })
         .catch((requestError: unknown) => {
-          if (active) handleRequestError(requestError, "No se pudieron buscar usuarios");
+          if (active) handleRequestError(requestError, "Could not search users");
         });
     }, 250);
     return () => {
@@ -258,7 +258,7 @@ export function Chat({ token, onUnauthorized }: ChatProps) {
       setUsers([]);
       setError(null);
     } catch (requestError) {
-      handleRequestError(requestError, "No se pudo abrir la conversación");
+      handleRequestError(requestError, "Could not open the conversation");
     }
   };
 
@@ -308,22 +308,22 @@ export function Chat({ token, onUnauthorized }: ChatProps) {
       <aside className="flex min-h-56 flex-col border-b border-slate-700 md:border-b-0 md:border-r">
         <div className="border-b border-slate-700 p-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-slate-100">Conversaciones</h2>
+            <h2 className="font-semibold text-slate-100">Conversations</h2>
             <span className={`flex items-center gap-1 text-xs ${isConnected ? "text-emerald-400" : "text-amber-400"}`}>
               {isConnected ? <Wifi size={14} /> : <WifiOff size={14} />}
-              {isConnected ? "Conectado" : "Conectando"}
+              {isConnected ? "Connected" : "Connecting"}
             </span>
           </div>
           <label className="mt-3 flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-900 px-3 py-2">
             <Search size={16} className="shrink-0 text-slate-400" />
             <input
-              aria-label="Buscar usuarios por email"
+              aria-label="Search users by email"
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value);
                 if (event.target.value.trim().length < 2) setUsers([]);
               }}
-              placeholder="Buscar por email"
+              placeholder="Search by email"
               className="min-w-0 flex-1 bg-transparent text-sm text-slate-100 outline-none placeholder:text-slate-500"
             />
           </label>
@@ -332,7 +332,7 @@ export function Chat({ token, onUnauthorized }: ChatProps) {
         <div className="flex-1 overflow-y-auto p-2">
           {users.length > 0 && (
             <div className="mb-3">
-              <p className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Personas</p>
+              <p className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500">People</p>
               {users.map((user) => (
                 <button
                   key={user.id}
@@ -352,7 +352,7 @@ export function Chat({ token, onUnauthorized }: ChatProps) {
           )}
 
           {search.trim().length >= 2 && users.length === 0 && (
-            <p className="px-3 py-2 text-sm text-slate-400">No se encontraron usuarios.</p>
+            <p className="px-3 py-2 text-sm text-slate-400">No users found.</p>
           )}
 
           {conversations.map((conversation) => (
@@ -371,7 +371,7 @@ export function Chat({ token, onUnauthorized }: ChatProps) {
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium text-slate-100">{conversationTitle(conversation)}</span>
                 <span className="block truncate text-xs text-slate-400">
-                  {conversation.lastMessage?.content ?? (conversation.isBot ? "Pregunta al asistente" : "Sin mensajes todavía")}
+                  {conversation.lastMessage?.content ?? (conversation.isBot ? "Ask the assistant" : "No messages yet")}
                 </span>
               </span>
             </button>
@@ -392,7 +392,7 @@ export function Chat({ token, onUnauthorized }: ChatProps) {
                 <h3 className="font-semibold text-slate-100">{conversationTitle(selectedConversation)}</h3>
                 <p className="text-xs text-slate-400">
                   {selectedConversation.isBot
-                    ? "Gemini procesa los mensajes de esta conversación"
+                    ? "An AI provider processes messages in this conversation"
                     : selectedConversation.otherUser?.email}
                 </p>
               </div>
@@ -404,7 +404,7 @@ export function Chat({ token, onUnauthorized }: ChatProps) {
                   <LoaderCircle className="animate-spin" />
                 </div>
               ) : messages.length === 0 ? (
-                <p className="py-10 text-center text-sm text-slate-400">Aún no hay mensajes. ¡Saluda!</p>
+                <p className="py-10 text-center text-sm text-slate-400">No messages yet. Say hello!</p>
               ) : messages.map((message) => {
                 const ownMessage = message.senderId === currentUserId && !message.isBot;
                 return (
@@ -426,13 +426,13 @@ export function Chat({ token, onUnauthorized }: ChatProps) {
                   </div>
                 );
               })}
-              {typingUserId && <p className="text-xs italic text-slate-400">La otra persona está escribiendo...</p>}
+              {typingUserId && <p className="text-xs italic text-slate-400">The other person is typing...</p>}
             </div>
 
             {error && <p role="alert" className="px-4 pb-2 text-sm text-rose-300">{error}</p>}
             <form onSubmit={sendMessage} className="flex items-end gap-2 border-t border-slate-700 p-3 sm:p-4">
               <textarea
-                aria-label="Escribe un mensaje"
+                aria-label="Type a message"
                 value={draft}
                 onChange={(event) => handleDraftChange(event.target.value)}
                 onKeyDown={(event) => {
@@ -443,13 +443,13 @@ export function Chat({ token, onUnauthorized }: ChatProps) {
                 }}
                 maxLength={2000}
                 rows={1}
-                placeholder="Escribe un mensaje..."
+                placeholder="Type a message..."
                 className="max-h-32 min-h-11 flex-1 resize-y rounded-lg border border-slate-600 bg-slate-900 px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-indigo-500"
               />
               <button
                 type="submit"
                 disabled={!draft.trim() || !isConnected || isSending}
-                aria-label="Enviar mensaje"
+                aria-label="Send message"
                 className="grid size-11 shrink-0 place-items-center rounded-lg bg-indigo-600 text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Send size={17} />
@@ -459,8 +459,8 @@ export function Chat({ token, onUnauthorized }: ChatProps) {
         ) : (
           <div className="grid flex-1 place-content-center p-8 text-center">
             <MessageCircle className="mx-auto mb-3 text-indigo-400" size={34} />
-            <h3 className="font-semibold text-slate-100">Tus mensajes</h3>
-            <p className="mt-1 text-sm text-slate-400">Elige una conversación o busca a alguien por su email.</p>
+            <h3 className="font-semibold text-slate-100">Your messages</h3>
+            <p className="mt-1 text-sm text-slate-400">Choose a conversation or search for someone by email.</p>
             {error && <p role="alert" className="mt-3 text-sm text-rose-300">{error}</p>}
           </div>
         )}

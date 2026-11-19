@@ -1,10 +1,10 @@
 import { Router } from "express";
-import {
-  createTask,
-  getMyTasks,
-  getTaskById,
-  updateTask,
-  deleteTask
+import { 
+  createTask, 
+  getMyTasks, 
+  getTaskById, 
+  updateTask, 
+  deleteTask 
 } from "../controllers/task.controller";
 import { verifyToken } from "../middlewares/auth.middleware";
 

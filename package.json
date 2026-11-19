@@ -13,8 +13,8 @@
     "url": "git+https://github.com/ArnauJimenez/task-management-app.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Arnau Jimenez",
+  "license": "MIT",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/ArnauJimenez/task-management-app/issues"

@@ -9,7 +9,10 @@ lerna-debug.log*
 
 node_modules
 dist
+build
 dist-ssr
+.vitest-cache/
+*.tsbuildinfo
 *.local
 
 # Editor directories and files

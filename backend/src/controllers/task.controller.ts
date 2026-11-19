@@ -18,7 +18,7 @@ export const createTask = async (req: Request, res: Response) => {
     const newTask = await taskService.createTask(title, description, userId);
     return res.status(201).json(newTask);
   } catch (error) {
-    req.log.error({ err: error }, "Failed to create task");
+    console.error("❌ Error en createTask:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -35,7 +35,7 @@ export const getMyTasks = async (req: Request, res: Response) => {
     const tasks = await taskService.getUserTasks(userId);
     return res.json(tasks);
   } catch (error) {
-    req.log.error({ err: error }, "Failed to get user tasks");
+    console.error("❌ Error en getMyTasks:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -58,7 +58,7 @@ export const getTaskById = async (req: Request, res: Response) => {
 
     return res.json(task);
   } catch (error) {
-    req.log.error({ err: error }, "Failed to get task");
+    console.error("❌ Error en getTaskById:", error);
     return res.status(500).json({ message: "Error fetching task" });
   }
 };
@@ -86,7 +86,7 @@ export const deleteTask = async (req: Request, res: Response) => {
     await taskService.deleteTask(id);
     return res.json({ message: "Task deleted successfully" });
   } catch (error) {
-    req.log.error({ err: error }, "Failed to delete task");
+    console.error("❌ Error en deleteTask:", error);
     return res.status(500).json({ message: "Error deleting task" });
   }
 };
@@ -115,7 +115,7 @@ export const updateTask = async (req: Request, res: Response) => {
     const updatedTask = await taskService.updateTask(id, { title, description, completed });
     return res.json(updatedTask);
   } catch (error) {
-    req.log.error({ err: error }, "Failed to update task");
+    console.error("❌ Error en updateTask:", error);
     return res.status(500).json({ message: "Error updating task" });
   }
 };

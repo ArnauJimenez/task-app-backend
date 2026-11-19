@@ -1,5 +1,19 @@
 # React + TypeScript + Vite
 
+## Docker
+
+From the `frontend` directory, build and start the production image:
+
+```sh
+docker build -t task-management-frontend .
+docker run -d --name task-management-frontend -p 8080:80 task-management-frontend
+```
+
+Open http://localhost:8080. Configure `VITE_API_URL` with the backend base URL
+and optionally `VITE_SOCKET_URL` when Socket.io is served from a different
+origin. Start the backend separately and include `http://localhost:8080` in its
+`CORS_ORIGIN` configuration.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

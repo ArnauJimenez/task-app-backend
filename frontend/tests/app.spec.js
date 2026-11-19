@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
-test('test básico de comprobación', async ({ page }) => {
-    await page.goto('http://localhost:5173'); // Ajusta al puerto de tu Vite si es distinto
+test('basic smoke test', async ({ page }) => {
+    await page.goto('http://localhost:5173'); // Adjust the port if your Vite server uses a different one.
     const title = await page.title();
-    console.log(`Título de la página: ${title}`);
+    console.log(`Page title: ${title}`);
     expect(true).toBe(true);
 });

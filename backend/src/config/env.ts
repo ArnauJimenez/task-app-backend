@@ -1,27 +1,27 @@
 import { z } from 'zod';
 import dotenv from 'dotenv';
-import { logger } from './logger';
 
-// Cargamos el archivo .env
+// Load the .env file.
 dotenv.config();
 
-// Definimos el esquema de lo que REQUIERE nuestro backend para sobrevivir
+// Define required backend configuration.
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  // Primero aplicamos el valor por defecto como String, y LUEGO lo transformamos a Number
+  // Apply the string default before converting it to a number.
 PORT: z.string().default('3000').transform((val) => parseInt(val, 10)),
-  DATABASE_URL: z.string().url({ message: "DATABASE_URL debe ser una URL válida de Postgres" }),
-  JWT_SECRET: z.string().min(8, { message: "JWT_SECRET debe tener al menos 8 caracteres" }),
+  DATABASE_URL: z.string().url({ message: "DATABASE_URL must be a valid Postgres URL" }),
+  JWT_SECRET: z.string().min(8, { message: "JWT_SECRET must contain at least 8 characters" }),
 });
 
-// Validamos process.env contra nuestro esquema
+// Validate the environment against the schema.
 const _env = envSchema.safeParse(process.env);
 
 if (!_env.success) {
-  logger.fatal({ errors: _env.error.format() }, 'Invalid environment configuration');
-  // Apagamos el servidor de inmediato
+  console.error("❌ Environment configuration error:");
+  console.error(JSON.stringify(_env.error.format(), null, 2));
+  // Stop the server immediately.
   process.exit(1);
 }
 
-// Exportamos las variables ya validadas y tipadas (PORT ahora será un number automáticamente)
+// Export validated, typed configuration.
 export const env = _env.data;

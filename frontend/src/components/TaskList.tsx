@@ -13,9 +13,9 @@ export function TaskList({ tasks, loading, onToggle, onDelete, onUpdate }: TaskL
   return (
     <div className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden">
       {loading ? (
-        <p className="text-center py-8 text-slate-400 text-sm">Cargando tareas...</p>
+        <p className="text-center py-8 text-slate-400 text-sm">Loading tasks...</p>
       ) : tasks.length === 0 ? (
-        <p className="text-center py-8 text-slate-400 text-sm">No hay tareas con este filtro. 🚀</p>
+        <p className="text-center py-8 text-slate-400 text-sm">No tasks match this filter. 🚀</p>
       ) : (
         <ul className="divide-y divide-slate-700/60">
           {tasks.map((task) => (

@@ -1,17 +1,17 @@
 import { Router } from 'express';
 import { validate, registerSchema, loginSchema } from '../middlewares/validate';
-// ... tus controladores o lógica de registro/login ...
+// ... your controllers or registration/login logic ...
 
 const router = Router();
 
-// Aplicamos el validador en el registro
+// Apply validation to registration.
 router.post('/register', validate(registerSchema), async (req, res) => {
-  // Tu lógica de registro actual...
+  // Your current registration logic...
 });
 
-// Aplicamos el validador en el login
+// Apply validation to login.
 router.post('/login', validate(loginSchema), async (req, res) => {
-  // Tu lógica de login actual...
+  // Your current login logic...
 });
 
 export default router;

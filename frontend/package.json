@@ -2,6 +2,12 @@
   "name": "frontend",
   "private": true,
   "version": "0.0.0",
+  "author": "Arnau Jimenez",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ArnauJimenez/task-management-app.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,6 +17,7 @@
     "test": "vitest run src/components/LoginForm.test.tsx"
   },
   "dependencies": {
+    "@sentry/react": "^11.11.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/vite": "^4.3.3",
     "axios": "^1.20.0",

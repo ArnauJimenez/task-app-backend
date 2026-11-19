@@ -23,15 +23,16 @@ afterEach(async () => {
 });
 
 describe('POST /api/auth/register', () => {
-  it('debería registrar un nuevo usuario correctamente', async () => {
+  it('registers a new user', async () => {
     const res = await request(app).post('/api/auth/register').send({ email: createTestEmail(), password: 'Password123!' });
     expect(res.status).toBe(201);
   });
-  it('debería fallar si faltan datos', async () => {
-    const res = await request(app).post('/api/auth/register').send({ email: createTestEmail() });
+  it('rejects missing data', async () => {
+    const res = await request(app).post('/api/auth/register').send({});
     expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Required fields are missing');
   });
-  it('debería fallar si el usuario ya existe', async () => {
+  it('rejects an existing user', async () => {
     const email = createTestEmail();
     await request(app).post('/api/auth/register').send({ email, password: 'Password123!' });
     const res = await request(app).post('/api/auth/register').send({ email, password: 'Password123!' });
@@ -40,16 +41,33 @@ describe('POST /api/auth/register', () => {
 });
 
 describe('POST /api/auth/login', () => {
-  it('debería hacer login correctamente', async () => {
+  it('rejects missing data', async () => {
+    const res = await request(app).post('/api/auth/login').send({});
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Required fields are missing');
+  });
+
+  it('logs in successfully', async () => {
     const email = createTestEmail();
     await request(app).post('/api/auth/register').send({ email, password: 'Password123!' });
     const res = await request(app).post('/api/auth/login').send({ email, password: 'Password123!' });
     expect(res.status).toBe(200);
   });
-  it('debería fallar con contraseña incorrecta', async () => {
+  it('rejects an incorrect password', async () => {
     const email = createTestEmail();
     await request(app).post('/api/auth/register').send({ email, password: 'Password123!' });
     const res = await request(app).post('/api/auth/login').send({ email, password: 'WrongPassword!' });
     expect(res.status).toBe(400);
+  });
+});
+
+describe('POST /api/auth/demo', () => {
+  it('creates an isolated guest session', async () => {
+    const res = await request(app).post('/api/auth/demo').send();
+
+    expect(res.status).toBe(201);
+    expect(res.body.token).toEqual(expect.any(String));
+    expect(res.body.user.email).toMatch(/^demo-.+@guest\.local$/);
+    testEmails.push(res.body.user.email);
   });
 });

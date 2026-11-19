@@ -6,15 +6,15 @@ import { validate, createTaskSchema } from '../middlewares/validate';
 const router = Router();
 const prisma = new PrismaClient();
 
-// GET /api/tasks?search=comprar&completed=true&page=1&limit=10
+// GET /api/tasks?search=buy&completed=true&page=1&limit=10
 router.get('/', authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.user) {
-      res.status(401).json({ error: 'Usuario no autenticado' });
+      res.status(401).json({ error: 'User not authenticated' });
       return;
     }
 
-    // Extracción y sanitización de Query Params
+    // Extract and sanitize query parameters.
     const search = typeof req.query.search === 'string' ? req.query.search : undefined;
     const completedParam = typeof req.query.completed === 'string' ? req.query.completed : undefined;
     const page = typeof req.query.page === 'string' ? req.query.page : '1';
@@ -24,9 +24,9 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
     const limitNum = parseInt(limit, 10) || 10;
     const skip = (pageNum - 1) * limitNum;
 
-    // Filtros con tipado nativo de Prisma
+    // Use Prisma's typed filters.
     const whereClause: Prisma.TaskWhereInput = {
-      userId: req.user.id, // TypeScript ya reconoce req.user sin quejas
+      userId: req.user.id,
     };
 
     if (search) {
@@ -39,7 +39,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
       whereClause.completed = completedParam === 'true';
     }
 
-    // Consulta paralela: datos paginados + contador total
+    // Query the current page and total count in parallel.
     const [tasks, total] = await Promise.all([
       prisma.task.findMany({
         where: whereClause,
@@ -60,16 +60,16 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    req.log.error({ err: error }, 'Failed to get tasks');
-    res.status(500).json({ error: 'Error al obtener las tareas' });
+    console.error('Error fetching tasks:', error);
+    res.status(500).json({ error: 'Could not fetch tasks' });
   }
 });
 
-// POST /api/tasks (Con validación Zod incorporada)
+// POST /api/tasks (with Zod validation)
 router.post('/', authenticateToken, validate(createTaskSchema), async (req: Request, res: Response) => {
   try {
     if (!req.user) {
-      res.status(401).json({ error: 'Usuario no autenticado' });
+      res.status(401).json({ error: 'User not authenticated' });
       return;
     }
 
@@ -78,14 +78,14 @@ router.post('/', authenticateToken, validate(createTaskSchema), async (req: Requ
     const newTask = await prisma.task.create({
       data: {
         title,
-        userId: req.user.id, // TypeScript reconoce req.user.id perfectamente
+        userId: req.user.id,
       },
     });
 
     res.status(201).json(newTask);
   } catch (error) {
-    req.log.error({ err: error }, 'Failed to create task');
-    res.status(500).json({ error: 'Error al crear la tarea' });
+    console.error('Error creating task:', error);
+    res.status(500).json({ error: 'Could not create task' });
   }
 });
 

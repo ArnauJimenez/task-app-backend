@@ -1,39 +1,39 @@
 import { Request, Response, NextFunction } from 'express';
 import { z, ZodError } from 'zod';
 
-// 1. Definición de los esquemas de validación
+// 1. Validation schemas
 export const registerSchema = z.object({
-  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').optional(),
-  email: z.string().email('El formato del correo electrónico es inválido'),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  name: z.string().min(2, 'Name must contain at least 2 characters').optional(),
+  email: z.string().email('Invalid email format'),
+  password: z.string().min(6, 'Password must contain at least 6 characters'),
 });
 
 export const loginSchema = z.object({
-  email: z.string().email('El formato del correo electrónico es inválido'),
-  password: z.string().min(1, 'La contraseña es obligatoria'),
+  email: z.string().email('Invalid email format'),
+  password: z.string().min(1, 'Password is required'),
 });
 
 export const createTaskSchema = z.object({
-  title: z.string().min(1, 'El título de la tarea no puede estar vacío').max(255, 'El título es demasiado largo'),
+  title: z.string().min(1, 'Task title cannot be empty').max(255, 'Title is too long'),
 });
 
-// 2. Middleware genérico para validar peticiones con Zod
+// 2. Generic request validation middleware
 export const validate = (schema: z.ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      // Valida y parsea el body de la petición
+      // Validate and parse the request body.
       schema.parse(req.body);
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        // Usamos .issues en lugar de .errors
+        // Zod validation details are available in .issues.
         res.status(400).json({
-          error: 'Datos de entrada inválidos',
+          error: 'Invalid input',
           details: error.issues.map((err) => err.message),
         });
         return;
       }
-      res.status(500).json({ error: 'Error interno de validación' });
+      res.status(500).json({ error: 'Internal validation error' });
     }
   };
 };

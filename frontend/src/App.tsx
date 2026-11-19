@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { api } from "./services/api.js";
 import { isAxiosError } from "axios";
-import { LogOut, MessageCircle, ListTodo } from "lucide-react";
+import { Bot, LogOut, MessageCircle, ListTodo } from "lucide-react";
 import { LoginForm } from "./components/LoginForm.js";
 import { TaskForm } from "./components/TaskForm.js";
 import { TaskList } from "./components/TaskList.js";
 import { Chat } from "./components/Chat.js";
+import { AgentChatBox } from "./components/AgentChatBox.js";
 import type { Task } from "./types.js";
 
 export default function App() {
@@ -13,7 +14,7 @@ export default function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [filter, setFilter] = useState<"all" | "pending" | "completed">("all");
-  const [activeView, setActiveView] = useState<"tasks" | "chat">("tasks");
+  const [activeView, setActiveView] = useState<"tasks" | "chat" | "agent">("tasks");
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("token");
@@ -30,7 +31,7 @@ export default function App() {
       if (isAxiosError(error) && error.response?.status === 401) {
         handleLogout();
       } else {
-        console.error("Error al cargar tareas", error);
+        console.error("Failed to load tasks", error);
       }
     } finally {
       setLoadingTasks(false);
@@ -53,7 +54,7 @@ export default function App() {
       const response = await api.post("/tasks", { title });
       setTasks((currentTasks) => [...currentTasks, response.data]);
     } catch (err) {
-      console.error("Error al crear tarea", err);
+      console.error("Failed to create task", err);
     }
   };
 
@@ -62,7 +63,7 @@ export default function App() {
       const response = await api.patch(`/tasks/${id}`, { completed: !completed });
       setTasks((currentTasks) => currentTasks.map((task) => (task.id === id ? response.data : task)));
     } catch (err) {
-      console.error("Error al actualizar tarea", err);
+      console.error("Failed to update task", err);
     }
   };
 
@@ -71,7 +72,7 @@ export default function App() {
       const response = await api.patch(`/tasks/${id}`, { title: newTitle });
       setTasks((currentTasks) => currentTasks.map((task) => (task.id === id ? response.data : task)));
     } catch (err) {
-      console.error("Error al actualizar título de tarea", err);
+      console.error("Failed to update task title", err);
     }
   };
   
@@ -80,27 +81,27 @@ export default function App() {
       await api.delete(`/tasks/${id}`);
       setTasks((currentTasks) => currentTasks.filter((task) => task.id !== id));
     } catch (err) {
-      console.error("Error al borrar tarea", err);
+      console.error("Failed to delete task", err);
     }
   };
 
-  // Filtrar tareas según el estado seleccionado
+  // Filter tasks by the selected status.
   const filteredTasks = tasks.filter((task) => {
     if (filter === "pending") return !task.completed;
     if (filter === "completed") return task.completed;
     return true; // "all"
   });
 
-  if (!token) {
-    return <LoginForm onLoginSuccess={handleLoginSuccess} />;
-  }
-
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 p-6">
+    <div className="min-h-screen flex flex-col bg-slate-900 text-slate-100">
+      {!token ? (
+        <LoginForm onLoginSuccess={handleLoginSuccess} />
+      ) : (
+      <main className="flex-1 p-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-6 bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md">
           <h1 className="text-lg font-bold text-indigo-400">TaskApp Dashboard</h1>
-          <nav aria-label="Secciones" className="flex items-center gap-2">
+          <nav aria-label="Sections" className="flex items-center gap-2">
             <button
               onClick={() => setActiveView("tasks")}
               aria-current={activeView === "tasks" ? "page" : undefined}
@@ -108,7 +109,7 @@ export default function App() {
                 activeView === "tasks" ? "bg-indigo-600 text-white" : "text-slate-300 hover:bg-slate-700"
               }`}
             >
-              <ListTodo size={15} /> Tareas
+              <ListTodo size={15} /> Tasks
             </button>
             <button
               onClick={() => setActiveView("chat")}
@@ -119,16 +120,27 @@ export default function App() {
             >
               <MessageCircle size={15} /> Chat
             </button>
+            <button
+              onClick={() => setActiveView("agent")}
+              aria-current={activeView === "agent" ? "page" : undefined}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium ${
+                activeView === "agent" ? "bg-indigo-600 text-white" : "text-slate-300 hover:bg-slate-700"
+              }`}
+            >
+              <Bot size={15} /> Agent
+            </button>
           </nav>
           <button
             onClick={handleLogout}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 rounded-lg text-xs font-medium transition-colors cursor-pointer"
           >
-            <LogOut size={14} /> Salir
+            <LogOut size={14} /> Log out
           </button>
         </div>
 
-        {activeView === "chat" ? (
+        {activeView === "agent" ? (
+          <AgentChatBox token={token} onUnauthorized={handleLogout} />
+        ) : activeView === "chat" ? (
           <Chat token={token} onUnauthorized={handleLogout} />
         ) : (
           <div className="max-w-xl mx-auto">
@@ -143,7 +155,7 @@ export default function App() {
                     : "bg-slate-800 text-slate-400 hover:bg-slate-750 border border-slate-700"
                 }`}
               >
-                Todas ({tasks.length})
+                All ({tasks.length})
               </button>
               <button
                 onClick={() => setFilter("pending")}
@@ -153,7 +165,7 @@ export default function App() {
                     : "bg-slate-800 text-slate-400 hover:bg-slate-750 border border-slate-700"
                 }`}
               >
-                Pendientes ({tasks.filter((task) => !task.completed).length})
+                Pending ({tasks.filter((task) => !task.completed).length})
               </button>
               <button
                 onClick={() => setFilter("completed")}
@@ -163,7 +175,7 @@ export default function App() {
                     : "bg-slate-800 text-slate-400 hover:bg-slate-750 border border-slate-700"
                 }`}
               >
-                Completadas ({tasks.filter((task) => task.completed).length})
+                Completed ({tasks.filter((task) => task.completed).length})
               </button>
             </div>
 
@@ -177,6 +189,19 @@ export default function App() {
           </div>
         )}
       </div>
+      </main>
+      )}
+      <footer className="shrink-0 px-4 py-4 text-center text-xs text-slate-400">
+        Built by Arnau Jimenez ·{" "}
+        <a
+          href="https://github.com/ArnauJimenez"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-indigo-400 hover:text-indigo-300 underline"
+        >
+          GitHub
+        </a>
+      </footer>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Validamos directamente el objeto que llega en el req.body
+// Validate the request body directly.
 export const createTaskSchema = z.object({
   title: z
     .string()
