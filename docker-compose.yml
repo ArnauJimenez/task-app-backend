@@ -1,0 +1,17 @@
+services:
+  # 🗄️ SERVICIO DE BASE DE DATOS (PostgreSQL)
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: tasks_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: arnau_user
+      POSTGRES_PASSWORD: super_password_docker
+      POSTGRES_DB: tasks_api_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

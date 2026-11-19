@@ -2,20 +2,33 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
-    branches: [main, master]
+    branches: [main]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: backend
+          POSTGRES_PASSWORD: backend
+          POSTGRES_DB: backend_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U backend -d backend_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
     env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
-
+      DATABASE_URL: postgresql://backend:backend@localhost:5432/backend_test?schema=public
+      JWT_SECRET: ci-test-secret
+      NODE_ENV: test
     steps:
-      - name: Checkout
+      - name: Check out repository
         uses: actions/checkout@v4
 
       - name: Set up Node.js
@@ -23,38 +36,21 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: |
-            backend/package-lock.json
-            frontend/package-lock.json
 
       - name: Install dependencies
-        run: |
-          npm ci --prefix backend
-          npm ci --prefix frontend
+        run: npm ci
 
       - name: Generate Prisma Client
-        working-directory: backend
-        env:
-          DATABASE_URL: file:./ci.db
         run: npx prisma generate
 
-      - name: Run unit tests
-        working-directory: frontend
-        run: npm run test
+      - name: Deploy database migrations
+        run: npm run db:migrate:deploy
 
-      - name: Install Playwright Chromium dependencies
-        working-directory: frontend
-        run: npx playwright install --with-deps chromium
+      - name: Build
+        run: npm run build
 
-      - name: Run Playwright E2E tests
-        working-directory: frontend
-        run: npx playwright test tests/app.spec.ts tests/sentry.spec.ts
+      - name: Run tests
+        run: npm test
 
-      - name: Upload Playwright report on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: frontend/playwright-report/
-          retention-days: 7
-          if-no-files-found: ignore
+      - name: Run database integration tests
+        run: npm run test:integration

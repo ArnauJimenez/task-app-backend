@@ -1,33 +1,7 @@
-# Dependencias (Los 220MB de basura)
-node_modules/
-
-# Variables de entorno con contraseñas secretas (¡MUY IMPORTANTE!)
-.env
-.env.local
-
-# Archivos generados por Prisma
-/prisma/dev.db
-/prisma/dev.db-journal
-
-# Carpetas de compilación (si usas dist o build en el futuro)
+node_modules
 dist/
 build/
-
-# TypeScript and Vitest caches
 .vitest-cache/
 *.tsbuildinfo
-
-# Archivos del sistema operativo
-.DS_Store
-Thumbs.db
-dev.db
-
-# Test and build artifacts
-test-results/
-playwright-report/
-*.tsbuildinfo
-
-# Playwright
-/blob-report/
-/playwright/.cache/
-/playwright/.auth/
+.env
+.env.production
