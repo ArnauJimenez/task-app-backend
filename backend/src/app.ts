@@ -13,6 +13,14 @@ import agentRoutes from './routes/agent.routes';
 
 export const app = express();
 
+function isMalformedJsonError(error: Error): boolean {
+  return error instanceof SyntaxError
+    && 'status' in error
+    && error.status === 400
+    && 'type' in error
+    && error.type === 'entity.parse.failed';
+}
+
 app.use(pinoHttpMiddleware);
 
 app.use(cors({
@@ -55,6 +63,16 @@ Sentry.setupExpressErrorHandler(app);
 app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   if (res.headersSent) {
     next(error);
+    return;
+  }
+
+  if (isMalformedJsonError(error)) {
+    logger.warn({ requestId: req.id }, 'Request contains invalid JSON');
+    res.status(400).json({
+      success: false,
+      error: 'Invalid JSON payload',
+      requestId: req.id,
+    });
     return;
   }
 

@@ -50,6 +50,20 @@ describe('HTTP telemetry', () => {
     expect(response.body).toEqual({ status: 'error', database: 'unavailable' });
   });
 
+  it('returns bad request for malformed JSON', async () => {
+    const response = await request(app)
+      .post('/api/auth/login')
+      .set('Content-Type', 'application/json')
+      .send('{"email":');
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({
+      success: false,
+      error: 'Invalid JSON payload',
+    });
+    expect(response.body.requestId).toBe(response.headers['x-request-id']);
+  });
+
   it('routes Express errors through the Sentry and global error handlers', async () => {
     const response = await request(app).get('/debug-sentry');
 
