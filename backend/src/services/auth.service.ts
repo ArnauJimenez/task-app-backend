@@ -2,9 +2,9 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { randomUUID } from 'node:crypto';
+import { getJwtSecret } from '../config/jwt';
 
 const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'secreto_super_seguro';
 
 export const authService = {
   // User registration
@@ -46,7 +46,7 @@ export const authService = {
     }
 
     // 3. Generate a JWT that expires in 24 hours.
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '24h' });
+    const token = jwt.sign({ userId: user.id }, getJwtSecret(), { expiresIn: '24h' });
 
     return {
       token,
@@ -65,7 +65,7 @@ export const authService = {
       },
       select: { id: true, name: true, email: true },
     });
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '24h' });
+    const token = jwt.sign({ userId: user.id }, getJwtSecret(), { expiresIn: '24h' });
 
     return { token, user };
   },

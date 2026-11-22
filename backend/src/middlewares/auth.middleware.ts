@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { getJwtSecret } from "../config/jwt";
 
 export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
@@ -9,7 +10,7 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction) => 
   }
 
   const token = authHeader.split(" ")[1];
-  const secret = process.env.JWT_SECRET || "secreto_super_seguro";
+  const secret = getJwtSecret();
 
   try {
     const decoded = jwt.verify(token, secret);

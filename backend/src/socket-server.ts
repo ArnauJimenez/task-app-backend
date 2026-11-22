@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
 import { app } from './app';
 import { isCorsOriginAllowed } from './config/cors';
+import { getJwtSecret } from './config/jwt';
 import { prisma } from './lib/prisma';
 import { generateTaskBotReply } from './services/taskbot.service';
 
@@ -54,7 +55,6 @@ export const io = new Server<ClientToServerEvents, ServerToClientEvents, Record<
   },
 );
 
-const jwtSecret = process.env.JWT_SECRET || 'secreto_super_seguro';
 const roomForUser = (userId: string) => `user:${userId}`;
 const roomForConversation = (conversationId: string) => `conversation:${conversationId}`;
 
@@ -78,7 +78,7 @@ io.use(async (socket, next) => {
 
   let decoded: jwt.JwtPayload | string;
   try {
-    decoded = jwt.verify(token, jwtSecret);
+    decoded = jwt.verify(token, getJwtSecret());
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
       next(new Error('Invalid or expired token'));
@@ -251,6 +251,9 @@ io.on('connection', (socket) => {
     console.info(`Chat client disconnected: ${socket.id} (${reason})`);
   });
 });
+
+// Fail fast: in production a missing JWT_SECRET stops the process here, not on the first login.
+getJwtSecret();
 
 const port = Number(process.env.PORT || 3000);
 httpServer.listen(port, '0.0.0.0', () => {

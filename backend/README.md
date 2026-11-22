@@ -190,9 +190,13 @@ The API is published on `${PORT:-3000}`; PostgreSQL remains private to the Compo
 
 ### Cloud Deployment & Live Demo
 
-For a small cloud deployment, create a PostgreSQL database in [Neon](https://neon.tech/) and deploy this repository to [Render](https://render.com/) using its Docker runtime and the repository `Dockerfile`. Configure Render's environment variables with the Neon `DATABASE_URL` (including `?sslmode=require`), a strong `JWT_SECRET`, `CORS_ORIGIN` set to the frontend's exact HTTPS origin(s), and any optional LLM provider settings or `SENTRY_DSN`. Render supplies `PORT`; the server binds to `0.0.0.0` and uses that value.
+For a small cloud deployment, create a PostgreSQL database in [Neon](https://neon.tech/) and deploy this repository to [Render](https://render.com/) with the **native Node runtime** (no Docker). The included `render.yaml` Blueprint sets this up: build with `npm ci --include=dev && npm run build`, start with `npm start`, and use `/health` as the health check path. The Dockerfile is only needed for the local Compose stack.
 
-The container applies migrations before listening. The initial PostgreSQL baseline requires an empty database. Do not point it at a database containing existing tables or data unless that database has been deliberately baselined against this migration history. Configure Render's health check path as `/health`; it returns `200` only when PostgreSQL is reachable.
+Set these variables in Render: `DATABASE_URL` (the Neon connection string, including `?sslmode=require`), `JWT_SECRET` (the Blueprint generates one), `CORS_ORIGIN` (the frontend's exact HTTPS origin, without a trailing slash), and optionally `PRIMARY_LLM_API_KEY`, `SECONDARY_LLM_API_KEY`, and `SENTRY_DSN`. Render supplies `PORT`; the server binds to `0.0.0.0` and uses that value.
+
+`npm start` applies pending Prisma migrations before listening. The initial PostgreSQL baseline requires an empty database. Do not point it at a database containing existing tables or data unless that database has been deliberately baselined against this migration history. `/health` returns `200` only when PostgreSQL is reachable, so Render keeps the instance out of rotation while the database is down.
+
+In production the server refuses to start without `JWT_SECRET`. Outside production it falls back to a development-only secret, so never deploy without setting one.
 
 Free-tier instances may spin down while idle, so the first request after a cold start can take around 30 seconds. Add the deployed API URL here once available: **Live API:** _not deployed_.
 

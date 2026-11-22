@@ -5,3 +5,9 @@ build/
 *.tsbuildinfo
 .env
 .env.production
+.env.*
+!.env.example
+*.db
+*.log
+test-results/
+playwright-report/

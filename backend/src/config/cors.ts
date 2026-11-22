@@ -13,13 +13,14 @@ function matchesOrigin(pattern: string, origin: string): boolean {
 export function isCorsOriginAllowed(origin: string | undefined): boolean {
   if (!origin) return true;
 
+  // Empty variables fall through to the next source; trailing slashes never match a browser Origin.
   const configuredOrigins = (
     process.env.CORS_ORIGIN
-    ?? process.env.FRONTEND_URL
-    ?? DEFAULT_CORS_ORIGIN
+    || process.env.FRONTEND_URL
+    || DEFAULT_CORS_ORIGIN
   )
     .split(',')
-    .map((value) => value.trim())
+    .map((value) => value.trim().replace(/\/+$/, ''))
     .filter(Boolean);
 
   return configuredOrigins.some((pattern) => matchesOrigin(pattern, origin));

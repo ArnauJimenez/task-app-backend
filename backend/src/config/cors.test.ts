@@ -36,4 +36,19 @@ describe('isCorsOriginAllowed', () => {
 
     expect(isCorsOriginAllowed('https://any.example')).toBe(true);
   });
+
+  it('ignores trailing slashes and spaces in the configured origin', () => {
+    process.env.CORS_ORIGIN = ' https://app.vercel.app/ , https://other.example.com//';
+
+    expect(isCorsOriginAllowed('https://app.vercel.app')).toBe(true);
+    expect(isCorsOriginAllowed('https://other.example.com')).toBe(true);
+  });
+
+  it('falls back to FRONTEND_URL when CORS_ORIGIN is set but empty', () => {
+    process.env.CORS_ORIGIN = '';
+    process.env.FRONTEND_URL = 'https://frontend.example.com/';
+
+    expect(isCorsOriginAllowed('https://frontend.example.com')).toBe(true);
+    expect(isCorsOriginAllowed('http://localhost:5173')).toBe(false);
+  });
 });

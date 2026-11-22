@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "author": "Arnau Jimenez",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ArnauJimenez/task-management-app.git"
@@ -10,6 +13,7 @@
   "main": "dist/socket-server.js",
   "scripts": {
     "dev": "tsx watch src/socket-server.ts",
+    "postinstall": "prisma generate",
     "start": "npm run db:migrate:deploy && node dist/socket-server.js",
     "db:migrate:deploy": "prisma migrate deploy",
     "build": "tsc --skipLibCheck",
