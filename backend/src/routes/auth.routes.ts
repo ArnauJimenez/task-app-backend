@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authService } from '../services/auth.service';
+import { authService, EmailAlreadyRegisteredError } from '../services/auth.service';
 import { logger } from '../config/logger';
 
 const router = Router();
@@ -11,7 +11,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password } = req.body ?? {};
     if (!email || !password) {
       return res.status(400).json({ error: 'Required fields are missing' });
     }
@@ -19,7 +19,12 @@ router.post('/register', async (req, res) => {
     const newUser = await authService.register(name || 'User', email, password);
     res.status(201).json({ message: 'User registered successfully', user: newUser });
   } catch (error) {
-    res.status(400).json({ error: getErrorMessage(error, 'Registration failed') });
+    if (error instanceof EmailAlreadyRegisteredError) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    logger.error({ err: error }, 'Could not register user');
+    return res.status(500).json({ error: 'Registration failed' });
   }
 });
 

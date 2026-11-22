@@ -6,13 +6,20 @@ import { getJwtSecret } from '../config/jwt';
 
 const prisma = new PrismaClient();
 
+export class EmailAlreadyRegisteredError extends Error {
+  constructor() {
+    super('Email is already registered');
+    this.name = 'EmailAlreadyRegisteredError';
+  }
+}
+
 export const authService = {
   // User registration
   register: async (name: string, email: string, password: string) => {
     // 1. Check whether the user already exists.
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      throw new Error('Email is already registered');
+      throw new EmailAlreadyRegisteredError();
     }
 
     // 2. Hash the password.
