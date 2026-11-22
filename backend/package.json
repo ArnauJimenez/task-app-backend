@@ -16,7 +16,7 @@
     "postinstall": "prisma generate",
     "start": "npm run db:migrate:deploy && node dist/socket-server.js",
     "db:migrate:deploy": "prisma migrate deploy",
-    "build": "tsc --skipLibCheck",
+    "build": "prisma generate && tsc",
     "test": "vitest run src --exclude src/auth.test.ts",
     "test:integration": "vitest run src/auth.test.ts",
     "docker:build": "docker build -t task-management-backend .",
